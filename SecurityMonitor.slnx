@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SecurityMonitor.Core/SecurityMonitor.Core.csproj" Id="af507d86-c332-4ba4-8def-a25504c725ef" />
+    <Project Path="src/SecurityMonitor.Host/SecurityMonitor.Host.csproj" Id="206cebe3-f2a0-4fc3-8ff2-93f58fd4d8df" />
+    <Project Path="src/SecurityMonitor.Infrastructure/SecurityMonitor.Infrastructure.csproj" Id="2475cd9c-6d33-4299-90a8-e87c66b70be5" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SecurityMonitor.Tests/SecurityMonitor.Tests.csproj" Id="29185060-d147-4900-96f3-1607b9f3c82a" />
+  </Folder>
+</Solution>
