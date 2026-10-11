@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
-	  <OutputType Condition="'$(Configuration)' == 'Release'">WinExe</OutputType>
+	<OutputType Condition="'$(Configuration)' == 'Release'">WinExe</OutputType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>dotnet-SecurityMonitor.Host-f6c51082-95a0-44ec-9f6a-3a2f2019515f</UserSecretsId>
