@@ -9,17 +9,20 @@ public sealed class FailedLoginMonitor
     private readonly FailedLoginClassifier _classifier;
     private readonly FailedLoginPolicy _policy;
     private readonly IWebcamCapture _webcam;
+    private readonly IEvidenceStorage _storage;
     private readonly ILogger<FailedLoginMonitor> _logger;
 
     public FailedLoginMonitor(
         FailedLoginClassifier classifier,
         FailedLoginPolicy policy,
         IWebcamCapture webcam,
+        IEvidenceStorage storage,
         ILogger<FailedLoginMonitor> logger)
     {
         _classifier = classifier;
         _policy = policy;
         _webcam = webcam;
+        _storage = storage;
         _logger = logger;
     }
 
@@ -64,7 +67,10 @@ public sealed class FailedLoginMonitor
             _logger.LogWarning("Webcam capture failed: {Reason}", capture.FailureReason);
         }
 
-        return new SecurityIncident(loginEvent, method, decision.AttemptsInWindow, capture);
+        var incident = new SecurityIncident(loginEvent, method, decision.AttemptsInWindow, capture);
+        await SaveSafelyAsync(incident, ct);
+
+        return incident;
     }
 
     private async Task<CaptureResult> CaptureSafelyAsync(CancellationToken ct)
@@ -81,6 +87,23 @@ public sealed class FailedLoginMonitor
         {
             _logger.LogError(ex, "Webcam capture threw an unexpected exception");
             return CaptureResult.Failed($"Unexpected camera error: {ex.Message}");
+        }
+    }
+
+    private async Task SaveSafelyAsync(SecurityIncident incident, CancellationToken ct)
+    {
+        try
+        {
+            string folder = await _storage.SaveAsync(incident, ct);
+            _logger.LogInformation("Evidence saved to {Folder}", folder);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to save evidence");
         }
     }
 }

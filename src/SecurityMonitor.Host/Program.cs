@@ -3,6 +3,7 @@ using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Services;
 using SecurityMonitor.Host;
 using SecurityMonitor.Infrastructure.Webcam;
+using SecurityMonitor.Infrastructure.Storage;
 using SecurityMonitor.Infrastructure.WindowsEventLog;
 using Serilog;
 
@@ -20,6 +21,7 @@ builder.Services.AddSingleton<FailedLoginMonitor>();
 
 builder.Services.AddSingleton<IFailedLoginWatcher, WindowsFailedLoginWatcher>();
 builder.Services.AddSingleton<IWebcamCapture, WindowsWebcamCapture>();
+builder.Services.AddSingleton<IEvidenceStorage, FileEvidenceStorage>();
 
 builder.Services.AddHostedService<Worker>();
 
