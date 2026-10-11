@@ -1,6 +1,6 @@
 ﻿using SecurityMonitor.Core.Models;
 
-namespace SecurityMonitor.Tests;
+namespace SecurityMonitor.Tests.TestData;
 
 internal static class TestEvents
 {

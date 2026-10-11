@@ -7,7 +7,11 @@ using SecurityMonitor.Infrastructure.Storage;
 using SecurityMonitor.Infrastructure.WindowsEventLog;
 using Serilog;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+});
 
 builder.Services.AddSerilog(config => config.ReadFrom.Configuration(builder.Configuration));
 

@@ -1,7 +1,7 @@
 ﻿using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Models;
 
-namespace SecurityMonitor.Tests;
+namespace SecurityMonitor.Tests.Fakes;
 
 internal sealed class FakeWebcamCapture : IWebcamCapture
 {

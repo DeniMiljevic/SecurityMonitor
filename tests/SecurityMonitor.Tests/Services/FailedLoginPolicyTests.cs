@@ -1,8 +1,9 @@
 ﻿using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Core.Models;
 using SecurityMonitor.Core.Services;
+using SecurityMonitor.Tests.TestData;
 
-namespace SecurityMonitor.Tests;
+namespace SecurityMonitor.Tests.Services;
 
 public class FailedLoginPolicyTests
 {
