@@ -13,7 +13,7 @@ public sealed class FailedLoginClassifier
     private const uint WrongPassword = 0xC000006A;
     private const uint WrongPin = 0xC0000380;
 
-    public bool isPhysicalAttempt(FailedLoginEvent loginEvent)
+    public bool IsPhysicalAttempt(FailedLoginEvent loginEvent)
     {
         if (loginEvent.EventId != FailedLogonEventId)
             return false;
