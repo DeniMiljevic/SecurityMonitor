@@ -2,6 +2,7 @@ using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Services;
 using SecurityMonitor.Host;
+using SecurityMonitor.Infrastructure.Webcam;
 using SecurityMonitor.Infrastructure.WindowsEventLog;
 using Serilog;
 
@@ -15,7 +16,10 @@ builder.Services.AddSingleton(monitorOptions);
 
 builder.Services.AddSingleton<FailedLoginClassifier>();
 builder.Services.AddSingleton<FailedLoginPolicy>();
+builder.Services.AddSingleton<FailedLoginMonitor>();
+
 builder.Services.AddSingleton<IFailedLoginWatcher, WindowsFailedLoginWatcher>();
+builder.Services.AddSingleton<IWebcamCapture, WindowsWebcamCapture>();
 
 builder.Services.AddHostedService<Worker>();
 

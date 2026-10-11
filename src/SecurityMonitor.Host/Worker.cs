@@ -7,26 +7,27 @@ namespace SecurityMonitor.Host;
 public class Worker : BackgroundService
 {
     private readonly IFailedLoginWatcher _watcher;
-    private readonly FailedLoginClassifier _classifier;
-    private readonly FailedLoginPolicy _policy;
+    private readonly FailedLoginMonitor _monitor;
     private readonly ILogger<Worker> _logger;
+    private CancellationToken _ct;
 
-    public Worker(IFailedLoginWatcher watcher, FailedLoginClassifier classifier, FailedLoginPolicy policy, ILogger<Worker> logger)
+    public Worker(IFailedLoginWatcher watcher, FailedLoginMonitor monitor, ILogger<Worker> logger)
     {
         _watcher = watcher;
-        _classifier = classifier;
-        _policy = policy;
+        _monitor = monitor;
         _logger = logger;
     }
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken ct)
     {
+        _ct = ct;
+
         _watcher.FailedLoginDetected += OnFailedLoginDetected;
         _watcher.Start();
 
         try
         {
-            await Task.Delay(Timeout.Infinite, stoppingToken);
+            await Task.Delay(Timeout.Infinite, ct);
         }
         catch (OperationCanceledException)
         {
@@ -41,30 +42,22 @@ public class Worker : BackgroundService
 
     private void OnFailedLoginDetected(object? sender, FailedLoginEvent e)
     {
-        if (!_classifier.IsPhysicalAttempt(e))
-        {
-            _logger.LogDebug("Ignored failed logon: LogonType {LogonType}, source {Source}", e.LogonType, e.SourceNetworkAddress ?? "-");
+        _ = HandleSafelyAsync(e);
+    }
 
-            return;
+    private async Task HandleSafelyAsync(FailedLoginEvent e)
+    {
+        try
+        {
+            await _monitor.HandleAsync(e, _ct);
         }
-
-        AuthenticationMethod method = _classifier.GetAuthenticationMethod(e);
-
-        _logger.LogInformation("Relevant failed login detected: {Method}, LogonType {LogonType}, user {UserName}", method, e.LogonType, e.UserName ?? "(unknown)");
-
-        PolicyDecision decision = _policy.Evaluate(e);
-
-        if (decision.ShouldCapture)
+        catch (OperationCanceledException)
         {
-            _logger.LogWarning("Failed login threshold reached ({Attempts}/{Threshold}), capture would start now", decision.AttemptsInWindow, decision.Threshold);
+
         }
-        else if (decision.InCooldown)
+        catch (Exception ex)
         {
-            _logger.LogInformation("Failed login count: {Attempts}/{Threshold} (capture cooldown active)", decision.AttemptsInWindow, decision.Threshold);
-        }
-        else
-        {
-            _logger.LogInformation("Failed login count: {Attempts}/{Threshold}", decision.AttemptsInWindow, decision.Threshold);
+            _logger.LogError(ex, "Unexpected error while handling a failed login");
         }
     }
 }
