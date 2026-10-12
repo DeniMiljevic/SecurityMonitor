@@ -4,7 +4,7 @@ using SecurityMonitor.Core.Services;
 
 namespace SecurityMonitor.Host;
 
-public class Worker : BackgroundService
+public sealed class Worker : BackgroundService
 {
     private readonly IFailedLoginWatcher _watcher;
     private readonly FailedLoginMonitor _monitor;

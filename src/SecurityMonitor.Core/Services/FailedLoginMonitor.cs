@@ -10,6 +10,8 @@ public sealed class FailedLoginMonitor
     private readonly FailedLoginPolicy _policy;
     private readonly IWebcamCapture _webcam;
     private readonly IEvidenceStorage _storage;
+    private readonly INotifier _notifier;
+    private readonly NotificationThrottle _throttle;
     private readonly ILogger<FailedLoginMonitor> _logger;
 
     public FailedLoginMonitor(
@@ -17,12 +19,16 @@ public sealed class FailedLoginMonitor
         FailedLoginPolicy policy,
         IWebcamCapture webcam,
         IEvidenceStorage storage,
+        INotifier notifier,
+        NotificationThrottle throttle,
         ILogger<FailedLoginMonitor> logger)
     {
         _classifier = classifier;
         _policy = policy;
         _webcam = webcam;
         _storage = storage;
+        _notifier = notifier;
+        _throttle = throttle;
         _logger = logger;
     }
 
@@ -42,13 +48,9 @@ public sealed class FailedLoginMonitor
         if (!decision.ShouldCapture)
         {
             if (decision.InCooldown)
-            {
                 _logger.LogInformation("Failed login count: {Attempts}/{Threshold} (capture cooldown active)", decision.AttemptsInWindow, decision.Threshold);
-            }
             else
-            {
                 _logger.LogInformation("Failed login count: {Attempts}/{Threshold}", decision.AttemptsInWindow, decision.Threshold);
-            }
 
             return null;
         }
@@ -69,6 +71,11 @@ public sealed class FailedLoginMonitor
 
         var incident = new SecurityIncident(loginEvent, method, decision.AttemptsInWindow, capture);
         await SaveSafelyAsync(incident, ct);
+
+        if (_throttle.ShouldNotify(loginEvent.Timestamp))
+            await NotifySafelyAsync(incident, ct);
+        else
+            _logger.LogInformation("Notification skipped (cooldown active)");
 
         return incident;
     }
@@ -104,6 +111,22 @@ public sealed class FailedLoginMonitor
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to save evidence");
+        }
+    }
+
+    private async Task NotifySafelyAsync(SecurityIncident incident, CancellationToken ct)
+    {
+        try
+        {
+            await _notifier.NotifyAsync(incident, ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send notification");
         }
     }
 }

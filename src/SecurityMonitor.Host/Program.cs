@@ -1,10 +1,4 @@
-using SecurityMonitor.Core.Configuration;
-using SecurityMonitor.Core.Interfaces;
-using SecurityMonitor.Core.Services;
 using SecurityMonitor.Host;
-using SecurityMonitor.Infrastructure.Webcam;
-using SecurityMonitor.Infrastructure.Storage;
-using SecurityMonitor.Infrastructure.WindowsEventLog;
 using Serilog;
 
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
@@ -13,20 +7,10 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
     ContentRootPath = AppContext.BaseDirectory
 });
 
+builder.Configuration.AddJsonFile(Path.Combine(Environment.ExpandEnvironmentVariables("%ProgramData"), "SecurityMonitor", "secrets.json"), optional: true, reloadOnChange: false);
+
 builder.Services.AddSerilog(config => config.ReadFrom.Configuration(builder.Configuration));
-
-SecurityMonitorOptions monitorOptions = builder.Configuration.GetSection(SecurityMonitorOptions.SectionName).Get<SecurityMonitorOptions>() ?? new SecurityMonitorOptions();
-
-builder.Services.AddSingleton(monitorOptions);
-
-builder.Services.AddSingleton<FailedLoginClassifier>();
-builder.Services.AddSingleton<FailedLoginPolicy>();
-builder.Services.AddSingleton<FailedLoginMonitor>();
-
-builder.Services.AddSingleton<IFailedLoginWatcher, WindowsFailedLoginWatcher>();
-builder.Services.AddSingleton<IWebcamCapture, WindowsWebcamCapture>();
-builder.Services.AddSingleton<IEvidenceStorage, FileEvidenceStorage>();
-
+builder.Services.AddSecurityMonitor(builder.Configuration);
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();

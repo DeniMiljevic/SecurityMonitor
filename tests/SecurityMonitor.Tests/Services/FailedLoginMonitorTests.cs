@@ -9,7 +9,7 @@ namespace SecurityMonitor.Tests.Services;
 
 public class FailedLoginMonitorTests
 {
-    private static FailedLoginMonitor CreateMonitor(FakeWebcamCapture webcam, int attempts = 1, FakeEvidenceStorage? storage = null) =>
+    private static FailedLoginMonitor CreateMonitor(FakeWebcamCapture webcam, int attempts = 1, FakeEvidenceStorage? storage = null, FakeNotifier? notifier = null, int notificationCooldownMinutes = 0) =>
         new(
             new FailedLoginClassifier(),
             new FailedLoginPolicy(new SecurityMonitorOptions
@@ -20,6 +20,8 @@ public class FailedLoginMonitorTests
             }),
             webcam,
             storage ?? FakeEvidenceStorage.Working(),
+            notifier ?? FakeNotifier.Working(),
+            new NotificationThrottle(TimeSpan.FromMinutes(notificationCooldownMinutes)),
             NullLogger<FailedLoginMonitor>.Instance);
 
     [Fact]
@@ -152,5 +154,38 @@ public class FailedLoginMonitorTests
         await monitor.HandleAsync(networkEvent);
 
         Assert.Empty(storage.Saved);
+    }
+
+    [Fact]
+    public async Task HandleAsync_IncidentCreated_NotifierIsCalled()
+    {
+        var notifier = FakeNotifier.Working();
+        var monitor = CreateMonitor(FakeWebcamCapture.ThatSucceeds(), notifier: notifier);
+
+        await monitor.HandleAsync(TestEvents.PinFailure());
+
+        Assert.Single(notifier.Notified);
+    }
+
+    [Fact]
+    public async Task HandleAsync_NotifierThrows_DoesNotCrashMonitor()
+    {
+        var monitor = CreateMonitor(FakeWebcamCapture.ThatSucceeds(), notifier: FakeNotifier.ThatThrows());
+
+        SecurityIncident? incident = await monitor.HandleAsync(TestEvents.PinFailure());
+
+        Assert.NotNull(incident);
+    }
+
+    [Fact]
+    public async Task HandleAsync_SecondAttemptDuringNotificationCooldown_NotifiesOnce()
+    {
+        var notifier = FakeNotifier.Working();
+        var monitor = CreateMonitor(FakeWebcamCapture.ThatSucceeds(), notifier: notifier, notificationCooldownMinutes: 5);
+
+        await monitor.HandleAsync(TestEvents.AtMinute(0));
+        await monitor.HandleAsync(TestEvents.AtMinute(1));
+
+        Assert.Single(notifier.Notified);
     }
 }
