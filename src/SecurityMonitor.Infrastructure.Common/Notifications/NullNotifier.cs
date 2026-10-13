@@ -1,7 +1,7 @@
 ﻿using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Models;
 
-namespace SecurityMonitor.Infrastructure.Notifications;
+namespace SecurityMonitor.Infrastructure.Common.Notifications;
 
 public sealed class NullNotifier : INotifier
 {

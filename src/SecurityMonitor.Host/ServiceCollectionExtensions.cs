@@ -1,8 +1,8 @@
 ﻿using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Services;
-using SecurityMonitor.Infrastructure.Notifications;
-using SecurityMonitor.Infrastructure.Storage;
+using SecurityMonitor.Infrastructure.Common.Notifications;
+using SecurityMonitor.Infrastructure.Common.Storage;
 using SecurityMonitor.Infrastructure.Webcam;
 using SecurityMonitor.Infrastructure.WindowsEventLog;
 

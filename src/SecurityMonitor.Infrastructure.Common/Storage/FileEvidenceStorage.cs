@@ -4,7 +4,7 @@ using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Models;
 
-namespace SecurityMonitor.Infrastructure.Storage;
+namespace SecurityMonitor.Infrastructure.Common.Storage;
 
 public sealed class FileEvidenceStorage : IEvidenceStorage
 {

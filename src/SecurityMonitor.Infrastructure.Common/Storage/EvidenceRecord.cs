@@ -1,6 +1,6 @@
 ﻿using SecurityMonitor.Core.Models;
 
-namespace SecurityMonitor.Infrastructure.Storage;
+namespace SecurityMonitor.Infrastructure.Common.Storage;
 
 internal sealed record EvidenceRecord
 {

@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\SecurityMonitor.Core\SecurityMonitor.Core.csproj" />
+    <ProjectReference Include="..\SecurityMonitor.Infrastructure.Common\SecurityMonitor.Infrastructure.Common.csproj" />
     <ProjectReference Include="..\SecurityMonitor.Infrastructure\SecurityMonitor.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
