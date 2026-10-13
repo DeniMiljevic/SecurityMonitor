@@ -11,7 +11,7 @@ public class FailedLoginMonitorTests
 {
     private static FailedLoginMonitor CreateMonitor(FakeWebcamCapture webcam, int attempts = 1, FakeEvidenceStorage? storage = null, FakeNotifier? notifier = null, int notificationCooldownMinutes = 0) =>
         new(
-            new FailedLoginClassifier(),
+            new WindowsFailedLoginClassifier(),
             new FailedLoginPolicy(new SecurityMonitorOptions
             {
                 FailedAttemptsBeforeCapture = attempts,

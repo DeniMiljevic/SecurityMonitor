@@ -1,8 +1,9 @@
 ﻿using SecurityMonitor.Core.Models;
+using SecurityMonitor.Core.Interfaces;
 
 namespace SecurityMonitor.Core.Services;
 
-public sealed class FailedLoginClassifier
+public sealed class WindowsFailedLoginClassifier : IFailedLoginClassifier
 {
     public const int FailedLogonEventId = 4625;
 
@@ -15,22 +16,25 @@ public sealed class FailedLoginClassifier
 
     public bool IsPhysicalAttempt(FailedLoginEvent loginEvent)
     {
-        if (loginEvent.EventId != FailedLogonEventId)
+        if (loginEvent is not WindowsFailedLoginEvent windowsEvent)
             return false;
 
-        bool isConsoleLogon = loginEvent.LogonType is Interactive or Unlock or CachedInteractive;
+        if (windowsEvent.EventId != FailedLogonEventId)
+            return false;
+
+        bool isConsoleLogon = windowsEvent.LogonType is Interactive or Unlock or CachedInteractive;
 
         if (!isConsoleLogon)
             return false;
 
-        return IsLocalSource(loginEvent.SourceNetworkAddress);
+        return IsLocalSource(windowsEvent.SourceNetworkAddress);
     }
 
     public AuthenticationMethod GetAuthenticationMethod(FailedLoginEvent loginEvent) =>
-        loginEvent.FailureSubStatus switch
+        loginEvent switch
         {
-            WrongPin => AuthenticationMethod.Pin,
-            WrongPassword => AuthenticationMethod.Password,
+            WindowsFailedLoginEvent { FailureSubStatus: WrongPin } => AuthenticationMethod.Pin,
+            WindowsFailedLoginEvent { FailureSubStatus: WrongPassword} => AuthenticationMethod.Password,
             _ => AuthenticationMethod.Unknown
         };
 

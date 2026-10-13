@@ -85,7 +85,7 @@ public sealed class WindowsFailedLoginWatcher : IFailedLoginWatcher
         }
     }
 
-    private static FailedLoginEvent Parse(EventRecord record)
+    private static WindowsFailedLoginEvent Parse(EventRecord record)
     {
         var data = new Dictionary<string, string>();
         XDocument xml = XDocument.Parse(record.ToXml());
@@ -99,7 +99,7 @@ public sealed class WindowsFailedLoginWatcher : IFailedLoginWatcher
 
         int.TryParse(Get(data, "LogonType"), out int logonType);
 
-        return new FailedLoginEvent
+        return new WindowsFailedLoginEvent
         {
             Timestamp = record.TimeCreated is DateTime created ? new DateTimeOffset(created) : DateTimeOffset.Now,
             EventId = record.Id,

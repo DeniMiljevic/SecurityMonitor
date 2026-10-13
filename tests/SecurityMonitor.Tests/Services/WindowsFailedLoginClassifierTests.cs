@@ -4,9 +4,9 @@ using SecurityMonitor.Tests.TestData;
 
 namespace SecurityMonitor.Tests.Services;
 
-public class FailedLoginClassifierTests
+public class WindowsFailedLoginClassifierTests
 {
-    private readonly FailedLoginClassifier _classifier = new();
+    private readonly WindowsFailedLoginClassifier _classifier = new();
 
     [Fact]
     public void IsPhysicalAttempt_WrongPinAtLockScreen_ReturnsTrue()

@@ -6,7 +6,7 @@ namespace SecurityMonitor.Core.Services;
 
 public sealed class FailedLoginMonitor
 {
-    private readonly FailedLoginClassifier _classifier;
+    private readonly IFailedLoginClassifier _classifier;
     private readonly FailedLoginPolicy _policy;
     private readonly IWebcamCapture _webcam;
     private readonly IEvidenceStorage _storage;
@@ -15,7 +15,7 @@ public sealed class FailedLoginMonitor
     private readonly ILogger<FailedLoginMonitor> _logger;
 
     public FailedLoginMonitor(
-        FailedLoginClassifier classifier,
+        IFailedLoginClassifier classifier,
         FailedLoginPolicy policy,
         IWebcamCapture webcam,
         IEvidenceStorage storage,
@@ -36,12 +36,12 @@ public sealed class FailedLoginMonitor
     {
         if (!_classifier.IsPhysicalAttempt(loginEvent))
         {
-            _logger.LogDebug("Ignored failed logon: LogonType {LogonType}, source {Source}", loginEvent.LogonType, loginEvent.SourceNetworkAddress ?? "-");
+            _logger.LogDebug("Ignored failed logon: {LoginEvent}", loginEvent);
             return null;
         }
 
         AuthenticationMethod method = _classifier.GetAuthenticationMethod(loginEvent);
-        _logger.LogInformation("Relevant failed login detected: {Method}, LogonType {LogonType}, user {UserName}", method, loginEvent.LogonType, loginEvent.UserName ?? "(unknown)");
+        _logger.LogInformation("Relevant failed login detected: {Method}, user {UserName}", method, loginEvent.UserName ?? "(Unknown)");
 
         PolicyDecision decision = _policy.Evaluate(loginEvent);
 

@@ -20,7 +20,7 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton(new NotificationThrottle(TimeSpan.FromMinutes(telegramOptions.NotificationCooldownMinutes)));
 
-        services.AddSingleton<FailedLoginClassifier>();
+        services.AddSingleton<IFailedLoginClassifier, WindowsFailedLoginClassifier>();
         services.AddSingleton<FailedLoginPolicy>();
         services.AddSingleton<FailedLoginMonitor>();
         services.AddSingleton<IFailedLoginWatcher, WindowsFailedLoginWatcher>();
