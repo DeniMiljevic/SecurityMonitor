@@ -1,7 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/SecurityMonitor.Core/SecurityMonitor.Core.csproj" Id="af507d86-c332-4ba4-8def-a25504c725ef" />
-    <Project Path="src/SecurityMonitor.Host/SecurityMonitor.Host.csproj" Id="206cebe3-f2a0-4fc3-8ff2-93f58fd4d8df" />
+    <Project Path="src/SecurityMonitor.Host.Windows/SecurityMonitor.Host.Windows.csproj" Id="206cebe3-f2a0-4fc3-8ff2-93f58fd4d8df" />
     <Project Path="src/SecurityMonitor.Infrastructure.Common/SecurityMonitor.Infrastructure.Common.csproj" Id="d7b13b32-1188-4700-afc5-7a951dd3dfd9" />
     <Project Path="src/SecurityMonitor.Infrastructure.Windows/SecurityMonitor.Infrastructure.Windows.csproj" Id="2475cd9c-6d33-4299-90a8-e87c66b70be5" />
   </Folder>

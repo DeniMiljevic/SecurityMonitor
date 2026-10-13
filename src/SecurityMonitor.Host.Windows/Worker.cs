@@ -2,7 +2,7 @@ using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Models;
 using SecurityMonitor.Core.Services;
 
-namespace SecurityMonitor.Host;
+namespace SecurityMonitor.Host.Windows;
 
 public sealed class Worker : BackgroundService
 {

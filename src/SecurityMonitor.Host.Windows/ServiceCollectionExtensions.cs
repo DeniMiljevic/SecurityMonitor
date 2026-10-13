@@ -6,7 +6,7 @@ using SecurityMonitor.Infrastructure.Common.Storage;
 using SecurityMonitor.Infrastructure.Windows.Webcam;
 using SecurityMonitor.Infrastructure.Windows.WindowsEventLog;
 
-namespace SecurityMonitor.Host;
+namespace SecurityMonitor.Host.Windows;
 
 internal static class ServiceCollectionExtensions
 {

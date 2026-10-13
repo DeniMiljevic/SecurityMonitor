@@ -1,4 +1,4 @@
-using SecurityMonitor.Host;
+using SecurityMonitor.Host.Windows;
 using Serilog;
 
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings

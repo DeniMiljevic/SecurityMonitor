@@ -1,7 +1,7 @@
 ﻿{
   "$schema": "https://json.schemastore.org/launchsettings.json",
   "profiles": {
-    "SecurityMonitor.Host": {
+    "SecurityMonitor.Host.Windows": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "environmentVariables": {
