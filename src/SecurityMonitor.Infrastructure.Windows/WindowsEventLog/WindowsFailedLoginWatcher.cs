@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Models;
 
-namespace SecurityMonitor.Infrastructure.WindowsEventLog;
+namespace SecurityMonitor.Infrastructure.Windows.WindowsEventLog;
 
 public sealed class WindowsFailedLoginWatcher : IFailedLoginWatcher
 {

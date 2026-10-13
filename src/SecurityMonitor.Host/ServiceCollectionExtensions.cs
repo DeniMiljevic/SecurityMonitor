@@ -3,8 +3,8 @@ using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Services;
 using SecurityMonitor.Infrastructure.Common.Notifications;
 using SecurityMonitor.Infrastructure.Common.Storage;
-using SecurityMonitor.Infrastructure.Webcam;
-using SecurityMonitor.Infrastructure.WindowsEventLog;
+using SecurityMonitor.Infrastructure.Windows.Webcam;
+using SecurityMonitor.Infrastructure.Windows.WindowsEventLog;
 
 namespace SecurityMonitor.Host;
 

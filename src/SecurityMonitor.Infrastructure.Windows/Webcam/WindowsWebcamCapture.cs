@@ -6,7 +6,7 @@ using Windows.Media.Capture;
 using Windows.Media.MediaProperties;
 using Windows.Storage.Streams;
 
-namespace SecurityMonitor.Infrastructure.Webcam;
+namespace SecurityMonitor.Infrastructure.Windows.Webcam;
 
 public sealed class WindowsWebcamCapture : IWebcamCapture, IDisposable
 {
