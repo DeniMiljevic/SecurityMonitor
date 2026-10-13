@@ -1,0 +1,12 @@
+{
+  "solution": {
+    "path": "SecurityMonitor.slnx",
+    "projects": [
+      "src/SecurityMonitor.Core/SecurityMonitor.Core.csproj",
+      "src/SecurityMonitor.Infrastructure.Common/SecurityMonitor.Infrastructure.Common.csproj",
+      "src/SecurityMonitor.Infrastructure.Linux/SecurityMonitor.Infrastructure.Linux.csproj",
+      "src/SecurityMonitor.Host.Linux/SecurityMonitor.Host.Linux.csproj",
+      "tests/SecurityMonitor.Tests/SecurityMonitor.Tests.csproj"
+    ]
+  }
+}
