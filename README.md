@@ -113,7 +113,6 @@ All dependencies point towards `Core`. The decision logic can be tested without 
 },
 "Telegram": {
   "Enabled": true,
-  "ChatId": "your-telegram-chat-id",
   "NotificationCooldownMinutes": 0
 }
 ```
@@ -128,18 +127,25 @@ All dependencies point towards `Core`. The decision logic can be tested without 
 | `Telegram.ChatId` | Who receives the message (your own Telegram chat id) |
 | `Telegram.NotificationCooldownMinutes` | Minimum time between two messages, `0` = notify every time |
 
-The **bot token is a secret** and is never kept in `appsettings.json` or in git. In development it lives in User Secrets; the published app reads it from `C:\ProgramData\SecurityMonitor\secrets.json`:
+The **bot token and chat id are personal** and are never kept in `appsettings.json` or in git. The app reads them from `C:\ProgramData\SecurityMonitor\secrets.json`:
 
 ```json
-{ "Telegram": { "BotToken": "your-bot-token" } }
+{
+  "Telegram": {
+    "BotToken": "your-bot-token",
+    "ChatId": "your-telegram-chat-id"
+  }
+}
 ```
+
+`appsettings.json` holds the settings that are the same for everyone; `secrets.json` holds what is personal to each user.
 
 ## Installation
 
 Requirements: Windows 10 (2004) or Windows 11, .NET 10 runtime, administrator rights. For phone notifications, a Telegram account.
 
 1. **Check that failed logons are audited.** Lock the PC, type a wrong PIN, unlock, then open Event Viewer -> Windows Logs -> Security and filter for Event ID **4625**. If nothing appears, enable *Audit Logon -> Failure* in Local Security Policy.
-2. **Set up Telegram (optional).** In Telegram, create a bot with **@BotFather** (`/newbot`) and copy the token. Send your bot any message. Get your chat id from **@userinfobot**. Put the token in `secrets.json` (above) and the chat id in `appsettings.json`.
+2. **Set up Telegram (optional).** In Telegram, create a bot with **@BotFather** (`/newbot`) and copy the token. Send your bot any message. Get your chat id from **@userinfobot**. Put the token and the chat id in `secrets.json` (above).
 3. **Publish.** In Visual Studio (run as administrator): right-click `SecurityMonitor.Host` -> Publish -> Folder -> `C:\Program Files\SecurityMonitor`, Release, Framework-dependent, win-x64.
 4. **Start automatically at sign-in.** In Task Scheduler -> Create Task:
    - General: *Run only when user is logged on*, *Run with highest privileges*
@@ -156,7 +162,7 @@ Each user installs on their own PC with their own bot token and chat id; secrets
 
 - The app **never reads, stores or intercepts passwords or PINs**. Windows does not write them to the event log, and the evidence format has no field for them.
 - It does not replace or hook the Windows sign-in screen and does not bypass any Windows protection.
-- Photos, logs and the bot token stay on the local disk; nothing is committed to git.
+- Photos, logs, the bot token and the chat id stay on the local disk; none of them are committed to git.
 - It is meant for monitoring **your own** computer.
 
 ## Running the tests
