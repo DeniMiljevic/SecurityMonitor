@@ -7,7 +7,7 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
     ContentRootPath = AppContext.BaseDirectory
 });
 
-builder.Configuration.AddJsonFile(Path.Combine(Environment.ExpandEnvironmentVariables("%ProgramData"), "SecurityMonitor", "secrets.json"), optional: true, reloadOnChange: false);
+builder.Configuration.AddJsonFile(Path.Combine(Environment.ExpandEnvironmentVariables("%ProgramData%"), "SecurityMonitor", "secrets.json"), optional: true, reloadOnChange: false);
 
 builder.Services.AddSerilog(config => config.ReadFrom.Configuration(builder.Configuration));
 builder.Services.AddSecurityMonitor(builder.Configuration);
