@@ -1,4 +1,5 @@
 using SecurityMonitor.Host.Windows;
+using SecurityMonitor.Infrastructure.Common.Hosting;
 using Serilog;
 
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
@@ -10,8 +11,8 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
 builder.Configuration.AddJsonFile(Path.Combine(Environment.ExpandEnvironmentVariables("%ProgramData%"), "SecurityMonitor", "secrets.json"), optional: true, reloadOnChange: false);
 
 builder.Services.AddSerilog(config => config.ReadFrom.Configuration(builder.Configuration));
-builder.Services.AddSecurityMonitor(builder.Configuration);
-builder.Services.AddHostedService<Worker>();
+builder.Services.AddSecurityMonitorCore(builder.Configuration);
+builder.Services.AddWindowsServices();
 
 var host = builder.Build();
 host.Run();

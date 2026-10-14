@@ -1,8 +1,10 @@
+﻿using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Models;
 using SecurityMonitor.Core.Services;
 
-namespace SecurityMonitor.Host.Windows;
+namespace SecurityMonitor.Infrastructure.Common.Hosting;
 
 public sealed class Worker : BackgroundService
 {
@@ -31,7 +33,7 @@ public sealed class Worker : BackgroundService
         }
         catch (OperationCanceledException)
         {
-
+            // The host is shutting down.
         }
         finally
         {
@@ -53,7 +55,7 @@ public sealed class Worker : BackgroundService
         }
         catch (OperationCanceledException)
         {
-
+            // The host is shutting down.
         }
         catch (Exception ex)
         {
