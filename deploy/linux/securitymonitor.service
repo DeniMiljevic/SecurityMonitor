@@ -1,0 +1,15 @@
+[Unit]
+Description=Failed Login Security Monitor
+# Start before the login screen, so the first attempt is already watched.
+Before=display-manager.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/dotnet /opt/securitymonitor/SecurityMonitor.Host.Linux.dll
+WorkingDirectory=/opt/securitymonitor
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
