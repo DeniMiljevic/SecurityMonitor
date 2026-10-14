@@ -23,4 +23,14 @@ internal static class TestEvents
 
     public static WindowsFailedLoginEvent AtMinute(double minutes) =>
         PinFailure(BaseTime.AddMinutes(minutes));
+
+    public static LinuxFailedLoginEvent LinuxFailure(string service = "lightdm") => new()
+    {
+        Timestamp = BaseTime,
+        Service = service,
+        Terminal = ":0",
+        UserName = "deni",
+        SourceNetworkAddress = null,
+        ComputerName = "test-mint"
+    };
 }

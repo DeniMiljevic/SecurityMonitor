@@ -68,4 +68,12 @@ public class WindowsFailedLoginClassifierTests
 
         Assert.Equal(expected, _classifier.GetAuthenticationMethod(loginEvent));
     }
+
+    [Fact]
+    public void IsPhysicalAttempt_LinuxEvent_ReturnsFalse()
+    {
+        FailedLoginEvent loginEvent = TestEvents.LinuxFailure();
+
+        Assert.False(_classifier.IsPhysicalAttempt(loginEvent));
+    }
 }

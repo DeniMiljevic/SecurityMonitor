@@ -18,6 +18,9 @@ internal sealed record EvidenceRecord
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public WindowsDetails? Windows { get; init; }
 
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public LinuxDetails? Linux { get; init; }
+
     public static EvidenceRecord From(SecurityIncident incident, string? photoFile)
     {
         FailedLoginEvent e = incident.TriggeringEvent;
@@ -33,7 +36,8 @@ internal sealed record EvidenceRecord
             CaptureSucceeded = incident.Capture.Success,
             CaptureFailureReason = incident.Capture.FailureReason,
             PhotoFile = photoFile,
-            Windows = e is WindowsFailedLoginEvent windowsEvent ? WindowsDetails.From(windowsEvent) : null
+            Windows = e is WindowsFailedLoginEvent windowsEvent ? WindowsDetails.From(windowsEvent) : null,
+            Linux = e is LinuxFailedLoginEvent linuxEvent ? LinuxDetails.From(linuxEvent) : null
         };
     }
 }
@@ -55,5 +59,17 @@ internal sealed record WindowsDetails
         FailureStatus = $"0x{e.FailureStatus:X8}",
         FailureSubStatus = $"0x{e.FailureSubStatus:X8}",
         WorkstationName = e.WorkstationName
+    };
+}
+
+internal sealed record LinuxDetails
+{
+    public required string Service { get; init; }
+    public string? Terminal { get; init; }
+
+    public static LinuxDetails From(LinuxFailedLoginEvent e) => new()
+    {
+        Service = e.Service,
+        Terminal = e.Terminal
     };
 }
