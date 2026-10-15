@@ -10,7 +10,16 @@ public static partial class JournalEntryParser
     [GeneratedRegex(@"^pam_unix\((?<service>[^:()]+):auth\): authentication failure;(?<fields>.*)$")]
     private static partial Regex PamAuthFailure();
 
-    public static LinuxFailedLoginEvent? TryParse(string jsonLine)
+    [GeneratedRegex(@"^pam_unix\((?<service>[^:()]+):session\): session opened for user (?<user>[^\s(]+)\(uid=(?<uid>\d+)\) by ")]
+    private static partial Regex PamSessionOpened();
+
+    public static LinuxFailedLoginEvent? TryParse(string jsonLine) =>
+        ParseEntry<LinuxFailedLoginEvent>(jsonLine, MapFailedLogin);
+
+    public static SuccessfulLoginEvent? TryParseSessionOpened(string jsonLine) =>
+        ParseEntry<SuccessfulLoginEvent>(jsonLine, MapSessionOpened);
+
+    private static T? ParseEntry<T>(string jsonLine, Func<JsonElement, string, T?> map) where T : class
     {
         if (string.IsNullOrWhiteSpace(jsonLine))
             return null;
@@ -35,22 +44,43 @@ public static partial class JournalEntryParser
             if (message is null)
                 return null;
 
-            Match match = PamAuthFailure().Match(message);
-            if (!match.Success)
-                return null;
-
-            Dictionary<string, string> fields = ParseFields(match.Groups["fields"].Value);
-
-            return new LinuxFailedLoginEvent
-            {
-                Timestamp = ParseTimestamp(GetString(entry, "__REALTIME_TIMESTAMP")),
-                Service = match.Groups["service"].Value,
-                Terminal = GetField(fields, "tty"),
-                UserName = GetField(fields, "user"),
-                SourceNetworkAddress = GetField(fields, "rhost"),
-                ComputerName = GetString(entry, "_HOSTNAME") ?? Environment.MachineName
-            };
+            return map(entry, message);
         }
+    }
+
+    private static LinuxFailedLoginEvent? MapFailedLogin(JsonElement entry, string message)
+    {
+        Match match = PamAuthFailure().Match(message);
+        if (!match.Success)
+            return null;
+
+        Dictionary<string, string> fields = ParseFields(match.Groups["fields"].Value);
+
+        return new LinuxFailedLoginEvent
+        {
+            Timestamp = ParseTimestamp(GetString(entry, "__REALTIME_TIMESTAMP")),
+            Service = match.Groups["service"].Value,
+            Terminal = GetField(fields, "tty"),
+            UserName = GetField(fields, "user"),
+            SourceNetworkAddress = GetField(fields, "rhost"),
+            ComputerName = GetString(entry, "_HOSTNAME") ?? Environment.MachineName
+        };
+    }
+
+    private static SuccessfulLoginEvent? MapSessionOpened(JsonElement entry, string message)
+    {
+        Match match = PamSessionOpened().Match(message);
+        if (!match.Success)
+            return null;
+
+        return new SuccessfulLoginEvent
+        {
+            Timestamp = ParseTimestamp(GetString(entry, "__REALTIME_TIMESTAMP")),
+            Service = match.Groups["service"].Value,
+            UserName = match.Groups["user"].Value,
+            UserId = int.TryParse(match.Groups["uid"].Value, NumberStyles.None, CultureInfo.InvariantCulture, out int uid) ? uid : null,
+            ComputerName = GetString(entry, "_HOSTNAME") ?? Environment.MachineName
+        };
     }
 
     private static string? GetString(JsonElement entry, string name) =>
