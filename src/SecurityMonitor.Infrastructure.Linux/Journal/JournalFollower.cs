@@ -6,9 +6,11 @@ namespace SecurityMonitor.Infrastructure.Linux.Journal;
 public sealed class JournalFollower : IDisposable
 {
     private static readonly string[] JournalctlArguments = ["--follow", "--lines=0", "--output=json", "SYSLOG_FACILITY=10"];
+    private static readonly TimeSpan RestartDelay = TimeSpan.FromSeconds(5);
 
     private readonly ILogger _logger;
     private readonly string _watching;
+    private readonly Lock _lock = new();
     private Process? _journalctl;
     private CancellationTokenSource? _cts;
 
@@ -20,9 +22,69 @@ public sealed class JournalFollower : IDisposable
 
     public void Start(Action<string> onLine)
     {
-        if (_journalctl is not null)
-            return;
+        lock (_lock)
+        {
+            if (_cts is not null)
+                return;
 
+            _cts = new CancellationTokenSource();
+            _ = RunAsync(onLine, _cts.Token);
+        }
+    }
+
+    public void Stop()
+    {
+        lock (_lock)
+        {
+            if (_cts is null)
+                return;
+
+            _cts.Cancel();
+            _cts.Dispose();
+            _cts = null;
+
+            KillCurrentProcess();
+        }
+    }
+
+    public void Dispose() => Stop();
+
+    private async Task RunAsync(Action<string> onLine, CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                using Process journalctl = StartJournalctl(ct);
+                await ReadLinesAsync(journalctl, onLine, ct);
+
+                if (ct.IsCancellationRequested)
+                    return;
+
+                _logger.LogWarning("journalctl stopped unexpectedly. Restarting it in {Delay} s so {Watching} keep being watched.", RestartDelay.TotalSeconds, _watching);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed while watching the system journal for {Watching}. Retrying in {Delay} s.", _watching, RestartDelay.TotalSeconds);
+            }
+
+            try
+            {
+                await Task.Delay(RestartDelay, ct);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+        }
+    }
+
+    private Process StartJournalctl(CancellationToken ct)
+    {
         var startInfo = new ProcessStartInfo("journalctl")
         {
             RedirectStandardOutput = true,
@@ -32,35 +94,14 @@ public sealed class JournalFollower : IDisposable
         foreach (string argument in JournalctlArguments)
             startInfo.ArgumentList.Add(argument);
 
-        _journalctl = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start journalctl.");
-        _cts = new CancellationTokenSource();
-        _ = ReadLinesAsync(_journalctl, onLine, _cts.Token);
-    }
-
-    public void Stop()
-    {
-        if (_journalctl is null)
-            return;
-
-        _cts?.Cancel();
-
-        try
+        lock (_lock)
         {
-            if (!_journalctl.HasExited)
-                _journalctl.Kill();
-        }
-        catch (InvalidOperationException)
-        {
-            // The process already exited.
-        }
+            ct.ThrowIfCancellationRequested();
 
-        _journalctl.Dispose();
-        _journalctl = null;
-        _cts?.Dispose();
-        _cts = null;
+            _journalctl = Process.Start(startInfo) ?? throw new InvalidOperationException("Could not start journalctl.");
+            return _journalctl;
+        }
     }
-
-    public void Dispose() => Stop();
 
     private async Task ReadLinesAsync(Process journalctl, Action<string> onLine, CancellationToken ct)
     {
@@ -68,17 +109,14 @@ public sealed class JournalFollower : IDisposable
         {
             while (await journalctl.StandardOutput.ReadLineAsync(ct) is { } line)
                 HandleLine(line, onLine);
-
-            if (!ct.IsCancellationRequested)
-                _logger.LogError("journalctl stopped unexpectedly. {Watching} are no longer being watched.", _watching);
         }
-        catch (OperationCanceledException)
+        finally
         {
-            // Stop() was called.
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed while reading the system journal");
+            lock (_lock)
+            {
+                if (ReferenceEquals(_journalctl, journalctl))
+                    _journalctl = null;
+            }
         }
     }
 
@@ -92,5 +130,20 @@ public sealed class JournalFollower : IDisposable
         {
             _logger.LogError(ex, "Failed to process a journal entry");
         }
+    }
+
+    private void KillCurrentProcess()
+    {
+        try
+        {
+            if (_journalctl is { HasExited: false })
+                _journalctl.Kill();
+        }
+        catch (InvalidOperationException)
+        {
+            // The process already exited.
+        }
+
+        _journalctl = null;
     }
 }

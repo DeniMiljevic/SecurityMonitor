@@ -10,6 +10,9 @@ ExecStart=/usr/bin/dotnet /opt/securitymonitor/SecurityMonitor.Host.Linux.dll
 WorkingDirectory=/opt/securitymonitor
 Restart=on-failure
 RestartSec=5
+# On stop, signal only our process. It stops its own journalctl child first;
+# systemd kills anything left over afterwards.
+KillMode=mixed
 
 [Install]
 WantedBy=multi-user.target
