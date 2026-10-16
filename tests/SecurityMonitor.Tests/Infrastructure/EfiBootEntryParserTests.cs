@@ -43,4 +43,23 @@ public class EfiBootEntryParserTests
         Assert.Equal("Old Windows", entry.Label);
         Assert.False(entry.IsActive);
     }
+
+    [Fact]
+    public void Parse_RealOutput_ReadsBootCurrentAndBootOrder()
+    {
+        EfiBootState state = EfiBootEntryParser.Parse(DualBootOutput);
+
+        Assert.Equal("0003", state.BootCurrent);
+        Assert.Equal(new[] { "0003", "0004", "0000", "0001", "0002" }, state.BootOrder);
+        Assert.Equal(5, state.Entries.Count);
+    }
+
+    [Fact]
+    public void Parse_WithoutHeaderLines_HasNoBootCurrentOrOrder()
+    {
+        EfiBootState state = EfiBootEntryParser.Parse("Boot0003* Ubuntu\tHD(...)\n");
+
+        Assert.Null(state.BootCurrent);
+        Assert.Empty(state.BootOrder);
+    }
 }
