@@ -5,4 +5,6 @@ namespace SecurityMonitor.Core.Interfaces;
 public interface INotifier
 {
     Task NotifyAsync(SecurityIncident incident, CancellationToken ct = default);
+
+    Task NotifyWarningAsync(string message, CancellationToken ct = default);
 }

@@ -7,4 +7,7 @@ public sealed class NullNotifier : INotifier
 {
     public Task NotifyAsync(SecurityIncident incident, CancellationToken ct = default) =>
         Task.CompletedTask;
+
+    public Task NotifyWarningAsync(string message, CancellationToken ct = default) =>
+        Task.CompletedTask;
 }

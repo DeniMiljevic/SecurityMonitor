@@ -32,6 +32,12 @@ public sealed class TelegramNotifier : INotifier
         _logger.LogInformation("Telegram notification sent");
     }
 
+    public async Task NotifyWarningAsync(string message, CancellationToken ct = default)
+    {
+        await SendMessageAsync($"\u26A0\uFE0F Security Monitor on {Environment.MachineName}\n{message}", ct);
+        _logger.LogInformation("Telegram warning sent");
+    }
+
     private static string BuildMessage(SecurityIncident incident)
     {
         FailedLoginEvent e = incident.TriggeringEvent;
