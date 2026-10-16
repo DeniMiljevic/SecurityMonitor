@@ -91,6 +91,7 @@ Windows shuts down or restarts        → BootNext is used up → Linux again
 - The switch uses the UEFI **BootNext** variable, so Windows is started directly by the firmware (not chained through GRUB).
 - **Fail-safe:** if anything goes wrong (no Windows entry, `efibootmgr` fails, the reboot fails, the service stops during the delay), the pending switch is cleared and the PC stays in Linux.
 - **DryRun** mode logs what would happen without touching the firmware.
+- **Startup check:** when the service starts it checks that Linux is first in the UEFI boot order and that the Windows entry exists, and sends a Telegram warning if not (retried while the network comes up).
 - Off by default. Nothing is registered and no second journal reader runs unless `DualBoot.Enabled` is `true`.
 
 Status: verified end to end in a VirtualBox VM (Linux Mint 22.3 + Windows 11, UEFI). Not yet deployed on real hardware.
@@ -121,7 +122,7 @@ src/
   SecurityMonitor.Host.Windows            Windows app (Generic Host, Serilog).
   SecurityMonitor.Host.Linux              Linux systemd service (Generic Host, Serilog, dual boot).
 tests/
-  SecurityMonitor.Tests                   98 xUnit tests with fake camera, storage, notifier,
+  SecurityMonitor.Tests                   109 xUnit tests with fake camera, storage, notifier,
                                           boot switcher and command runner.
 deploy/linux/
   securitymonitor.service                 systemd unit.
@@ -243,7 +244,7 @@ The service is a normal, visible systemd unit: `systemctl status securitymonitor
 
 ## Running the tests
 
-Visual Studio: **Test → Run All Tests** (98 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf`.
+Visual Studio: **Test → Run All Tests** (109 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf`.
 
 They cover the Windows and Linux classifiers, the journal and `efibootmgr` parsers (with real captured output), the capture policy, the notification throttle, the dual-boot policy and monitor, the boot switcher (DryRun, missing Windows entry, failed `--bootnext`, failed reboot) and the failed-login monitor (a camera, storage or notifier failure does not crash it).
 
@@ -257,7 +258,8 @@ They cover the Windows and Linux classifiers, the journal and `efibootmgr` parse
 - [x] Dual-boot login gate via UEFI BootNext, verified in a VM
 - [ ] Windows webcam capture verified with a real webcam
 - [ ] Linux webcam capture (`ffmpeg` / V4L2)
-- [ ] Startup check that GRUB is first in the UEFI boot order
+- [x] Startup check of the UEFI boot order and the Windows entry, with a Telegram warning
+- [ ] Windows-side check that Windows has not put itself first in the boot order
 - [ ] GRUB password, then deployment on real hardware
 - [ ] Windows: report failed attempts that happened while the app was not running
 - [ ] Restrict evidence folder access to administrators
