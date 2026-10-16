@@ -73,7 +73,7 @@ flowchart LR
 
    Network logons, services, scheduled tasks, Remote Desktop, `sudo` and `ssh` are ignored.
 3. **Policy.** Configurable threshold, time window and cooldown decide when to capture. The default reacts to every relevant attempt.
-4. **Capture.** One photo from the default webcam (Windows). Camera problems are recorded as a failed capture and never crash the app.
+4. **Capture.** One photo from the webcam: `MediaCapture` on Windows, `ffmpeg` (Video4Linux) on Linux. The camera is on only for that moment. Camera problems (no camera, camera busy, access denied, no response) are recorded as a failed capture and never crash the app.
 5. **Evidence.** Saved as JSON, plus the photo when there is one. Diagnostic logs are kept separately.
 6. **Notification.** A Telegram message, with the photo when there is one. A throttle prevents spam but never drops evidence.
 
@@ -103,7 +103,7 @@ These are platform limits or known gaps, not hidden bugs:
 - **Windows: only while you are signed in and the PC is locked.** The app runs in your user session (Task Scheduler at sign-in). Attempts on the sign-in screen after a restart are not seen, and a Windows Service cannot reliably use the camera (Session 0 isolation).
 - **Windows: wrong PINs have no user name** in the event log. **Biometric failures** usually do not create event 4625.
 - **Windows: webcam capture** is implemented and handles "no camera" and "access denied", but has not yet been verified with a real webcam. Camera privacy settings apply.
-- **Linux: no webcam capture yet.** Evidence and Telegram work, the photo is missing.
+- **Linux: webcam capture** is implemented with `ffmpeg` and unit tested, but has not yet been verified with a real webcam.
 - **Linux: other desktops.** Service names are those of Linux Mint Cinnamon (`lightdm`, `cinnamon-screensaver`). Another display manager or screen locker needs its name added.
 - **Linux: if `journalctl` crashes**, it is restarted after 5 s and entries written during that gap are not seen.
 - **The login gate is not a hard security boundary on its own.** Choosing Windows in the GRUB menu or the firmware boot menu, or booting from USB, skips Linux. Close these with a GRUB password, a firmware (BIOS) admin password, a disabled boot menu / USB boot, and BitLocker for the Windows data. Someone who can open the case can always reset the firmware.
@@ -122,7 +122,7 @@ src/
   SecurityMonitor.Host.Windows            Windows app (Generic Host, Serilog).
   SecurityMonitor.Host.Linux              Linux systemd service (Generic Host, Serilog, dual boot).
 tests/
-  SecurityMonitor.Tests                   109 xUnit tests with fake camera, storage, notifier,
+  SecurityMonitor.Tests                   120 xUnit tests with fake camera, ffmpeg, storage, notifier,
                                           boot switcher and command runner.
 deploy/linux/
   securitymonitor.service                 systemd unit.
@@ -147,6 +147,11 @@ All dependencies point towards `Core`. The decision logic is tested without real
   "Enabled": true,
   "NotificationCooldownMinutes": 0
 },
+"LinuxWebcam": {
+  "Device": "/dev/video0",
+  "WarmupSeconds": 1,
+  "TimeoutSeconds": 10
+},
 "DualBoot": {
   "Enabled": false,
   "DryRun": true,
@@ -164,6 +169,9 @@ All dependencies point towards `Core`. The decision logic is tested without real
 | `EvidenceDirectory` | Where incidents are saved (environment variables are expanded) |
 | `Telegram.Enabled` | Phone notifications on or off |
 | `Telegram.NotificationCooldownMinutes` | Minimum time between two messages, `0` = every time |
+| `LinuxWebcam.Device` | Linux only: camera device, usually `/dev/video0` |
+| `LinuxWebcam.WarmupSeconds` | Wait before the photo, so the camera can adjust to the light |
+| `LinuxWebcam.TimeoutSeconds` | Give up if the camera does not answer in time |
 | `DualBoot.Enabled` | Linux only: turn the login gate on |
 | `DualBoot.DryRun` | Only log what would happen, never change the boot order |
 | `DualBoot.SwitchToWindowsUsers` | Linux users whose login restarts the PC into Windows |
@@ -199,7 +207,7 @@ Requirements: Windows 10 (2004) or 11, .NET 10 runtime, administrator rights, op
 
 ## Installation: Linux
 
-Tested on Linux Mint 22.3 Cinnamon. Requirements: .NET 10 SDK (`sudo apt install dotnet-sdk-10.0`), root rights, `efibootmgr` for the login gate.
+Tested on Linux Mint 22.3 Cinnamon. Requirements: .NET 10 SDK (`sudo apt install dotnet-sdk-10.0`), `ffmpeg` for the webcam (`sudo apt install ffmpeg`), root rights, `efibootmgr` for the login gate.
 
 ```bash
 git clone https://github.com/DeniMiljevic/SecurityMonitor.git
@@ -244,7 +252,7 @@ The service is a normal, visible systemd unit: `systemctl status securitymonitor
 
 ## Running the tests
 
-Visual Studio: **Test → Run All Tests** (109 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf`.
+Visual Studio: **Test → Run All Tests** (120 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf`.
 
 They cover the Windows and Linux classifiers, the journal and `efibootmgr` parsers (with real captured output), the capture policy, the notification throttle, the dual-boot policy and monitor, the boot switcher (DryRun, missing Windows entry, failed `--bootnext`, failed reboot) and the failed-login monitor (a camera, storage or notifier failure does not crash it).
 
@@ -257,7 +265,8 @@ They cover the Windows and Linux classifiers, the journal and `efibootmgr` parse
 - [x] Linux: systemd service that starts before the login screen
 - [x] Dual-boot login gate via UEFI BootNext, verified in a VM
 - [ ] Windows webcam capture verified with a real webcam
-- [ ] Linux webcam capture (`ffmpeg` / V4L2)
+- [x] Linux webcam capture (`ffmpeg` / V4L2), unit tested
+- [ ] Linux webcam capture verified with a real webcam
 - [x] Startup check of the UEFI boot order and the Windows entry, with a Telegram warning
 - [ ] Windows-side check that Windows has not put itself first in the boot order
 - [ ] GRUB password, then deployment on real hardware

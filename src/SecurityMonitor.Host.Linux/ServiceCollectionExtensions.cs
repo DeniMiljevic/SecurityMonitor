@@ -14,6 +14,10 @@ internal static class ServiceCollectionExtensions
     {
         services.AddSingleton<IFailedLoginWatcher, LinuxFailedLoginWatcher>();
         services.AddSingleton<IFailedLoginClassifier, LinuxFailedLoginClassifier>();
+        services.AddSingleton<ICommandRunner, ProcessCommandRunner>();
+
+        LinuxWebcamOptions webcam = config.GetSection(LinuxWebcamOptions.SectionName).Get<LinuxWebcamOptions>() ?? new LinuxWebcamOptions();
+        services.AddSingleton(webcam);
         services.AddSingleton<IWebcamCapture, LinuxWebcamCapture>();
 
         services.AddDualBoot(config);
@@ -31,7 +35,6 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton(options);
         services.AddSingleton<DualBootPolicy>();
         services.AddSingleton<DualBootMonitor>();
-        services.AddSingleton<ICommandRunner, ProcessCommandRunner>();
         services.AddSingleton<IBootSwitcher, EfiBootNextSwitcher>();
         services.AddSingleton<IBootConfigurationCheck, EfiBootConfigurationCheck>();
         services.AddSingleton<BootConfigurationMonitor>();
