@@ -1,5 +1,7 @@
 # Failed Login Security Monitor
 
+[![CI](https://github.com/DeniMiljevic/SecurityMonitor/actions/workflows/ci.yml/badge.svg)](https://github.com/DeniMiljevic/SecurityMonitor/actions/workflows/ci.yml)
+
 A background service for **Windows and Linux** that detects failed login attempts on your own PC, tries to take a webcam photo, saves the evidence locally and sends a notification to your phone via Telegram.
 
 On a dual-boot PC it can also act as a **login gate**: the PC always starts Linux, and a successful login by a configured user restarts the PC into Windows.
@@ -126,6 +128,9 @@ tests/
                                           boot switcher and command runner.
 deploy/linux/
   securitymonitor.service                 systemd unit.
+  update.sh                               Pull, test, publish and restart the service.
+.github/workflows/
+  ci.yml                                  GitHub Actions: build and test on Linux and Windows.
 ```
 
 All dependencies point towards `Core`. The decision logic is tested without real failed logins, a webcam, the event log, the journal, firmware or a network connection. For example, the boot switcher tests check that DryRun never calls `efibootmgr --bootnext` and that a failed reboot clears BootNext again.
@@ -259,6 +264,8 @@ The service is a normal, visible systemd unit: `systemctl status securitymonitor
 
 Visual Studio: **Test → Run All Tests** (137 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf`.
 
+Every push and pull request to `main` is built and tested by GitHub Actions on two runners: Ubuntu (the Linux solution filter) and Windows (the whole solution, including the Windows host). The badge at the top shows the result of the latest run.
+
 They cover the Windows and Linux classifiers, the journal and `efibootmgr` parsers (with real captured output), the capture policy, the notification throttle, the dual-boot policy and monitor, the boot switcher (DryRun, missing Windows entry, failed `--bootnext`, failed reboot) and the failed-login monitor (a camera, storage or notifier failure does not crash it).
 
 ## Status and roadmap
@@ -273,6 +280,7 @@ They cover the Windows and Linux classifiers, the journal and `efibootmgr` parse
 - [x] Linux webcam capture (`ffmpeg` / V4L2), unit tested
 - [ ] Linux webcam capture verified with a real webcam
 - [x] Startup check of the UEFI boot order and the Windows entry, with a Telegram warning
+- [x] Update script for Linux and GitHub Actions CI (Linux and Windows)
 - [ ] Windows-side check that Windows has not put itself first in the boot order
 - [ ] GRUB password, then deployment on real hardware
 - [ ] Windows: report failed attempts that happened while the app was not running
