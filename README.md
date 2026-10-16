@@ -1,12 +1,14 @@
 # Failed Login Security Monitor
 
-A small Windows background app that detects failed PIN and password attempts on a **locked** PC, tries to take a webcam photo, saves the evidence locally, and sends a notification to your phone via Telegram.
+A background service for **Windows and Linux** that detects failed login attempts on your own PC, tries to take a webcam photo, saves the evidence locally and sends a notification to your phone via Telegram.
 
-Built with C# / .NET 10 as a learning project, using only documented Windows mechanisms: the Security event log, Task Scheduler, the `MediaCapture` camera API and the Telegram Bot API.
+On a dual-boot PC it can also act as a **login gate**: the PC always starts Linux, and a successful login by a configured user restarts the PC into Windows.
+
+Built with C# / .NET 10 as a learning project, using only documented operating system mechanisms: the Windows Security event log, Linux PAM entries in the systemd journal, systemd, UEFI boot variables, the Windows `MediaCapture` camera API and the Telegram Bot API.
 
 ## What it does
 
-When someone types a wrong PIN or password on your lock screen:
+When someone types a wrong password or PIN on the lock or login screen:
 
 ```
 [22:01:29 INF] Relevant failed login detected: Pin, LogonType 2, user (unknown)
@@ -20,100 +22,136 @@ When someone types a wrong PIN or password on your lock screen:
 A notification arrives on your phone, and each incident gets its own folder:
 
 ```
-C:\ProgramData\SecurityMonitor\Evidence\
-    2026-10-12\
-        22-01-29\
+Evidence/
+    2026-10-16/
+        14-31-31/
             event.json
             photo.jpg      (only when a camera captured a photo)
 ```
 
-`event.json` example:
+`event.json` has common fields and a platform-specific block:
 
 ```json
 {
-  "timestamp": "2026-10-12T22:01:29.1334291+02:00",
-  "eventId": 4625,
-  "logonType": 2,
-  "authenticationMethod": "Pin",
-  "userName": null,
-  "domain": null,
-  "failureStatus": "0xC000006D",
-  "failureSubStatus": "0xC0000380",
-  "sourceNetworkAddress": "127.0.0.1",
-  "workstationName": null,
-  "computerName": "Deni",
+  "timestamp": "2026-10-16T14:31:31.2245511+02:00",
+  "authenticationMethod": "Password",
+  "userName": "deni",
+  "sourceNetworkAddress": null,
+  "computerName": "deni-dualboot",
   "attemptsInWindow": 1,
   "captureSucceeded": false,
-  "captureFailureReason": "No camera found",
-  "photoFile": null
+  "captureFailureReason": "Webcam capture is not implemented on Linux yet",
+  "photoFile": null,
+  "linux": {
+    "service": "cinnamon-screensaver",
+    "terminal": ":0"
+  }
 }
 ```
+
+On Windows the block is `"windows"` with `eventId`, `logonType`, `domain`, `failureStatus`, `failureSubStatus` and `workstationName`.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-    A[Wrong PIN on lock screen] --> B[Windows writes<br/>Security event 4625]
-    B --> C[WindowsFailedLoginWatcher<br/>EventLogWatcher]
-    C --> D[FailedLoginClassifier<br/>physical attempt?]
+    A[Wrong password / PIN] --> B[Windows: Security event 4625<br/>Linux: PAM entry in journald]
+    B --> C[FailedLoginWatcher]
+    C --> D[Classifier<br/>physical attempt?]
     D --> E[FailedLoginPolicy<br/>capture now?]
-    E --> F[WindowsWebcamCapture<br/>one JPEG]
+    E --> F[WebcamCapture<br/>one JPEG]
     F --> G[FileEvidenceStorage<br/>event.json + photo.jpg]
-    G --> H[TelegramNotifier<br/>message + photo to phone]
+    G --> H[TelegramNotifier]
 ```
 
-1. **Detection.** The app subscribes to new **Event ID 4625** ("An account failed to log on") entries in the Windows Security log.
-2. **Classification.** Only attempts that look like someone at the keyboard count:
-   - Logon Type **2** (Interactive), **7** (Unlock) or **11** (CachedInteractive)
-   - local source address (empty, `127.0.0.1` or `::1`)
+1. **Detection.**
+   - Windows: subscribes to new **Event ID 4625** ("An account failed to log on") entries in the Security log.
+   - Linux: follows the system journal (`journalctl --follow`, auth facility) and reads `pam_unix(...:auth): authentication failure` entries. If `journalctl` stops, it is started again automatically.
+2. **Classification.** Only attempts made at the keyboard count:
+   - Windows: Logon Type **2** (Interactive), **7** (Unlock) or **11** (CachedInteractive) from a local address. The Sub Status tells a wrong **PIN** (`0xC0000380`) from a wrong **password** (`0xC000006A`).
+   - Linux: the login screen (`lightdm`) and the lock screen (`cinnamon-screensaver`) with no remote host.
 
-   Network logons, services, scheduled tasks and Remote Desktop are ignored. The Sub Status code tells a wrong **PIN** (`0xC0000380`) from a wrong **password** (`0xC000006A`).
-3. **Policy.** Configurable threshold, time window and cooldown decide when to capture. The default takes a photo on every relevant failed attempt.
-4. **Capture.** One photo from the default webcam via `Windows.Media.Capture`. The camera is on only during the capture. Camera problems (no camera, access denied, camera busy) are recorded as a failed capture and never crash the app.
-5. **Evidence.** The incident is saved as JSON, plus the photo when there is one. Diagnostic logs are kept separately in `C:\ProgramData\SecurityMonitor\Logs`.
-6. **Notification.** A Telegram message is sent to your phone, with the photo attached when one was captured. A throttle prevents spam; it never drops evidence, only the extra messages.
+   Network logons, services, scheduled tasks, Remote Desktop, `sudo` and `ssh` are ignored.
+3. **Policy.** Configurable threshold, time window and cooldown decide when to capture. The default reacts to every relevant attempt.
+4. **Capture.** One photo from the default webcam (Windows). Camera problems are recorded as a failed capture and never crash the app.
+5. **Evidence.** Saved as JSON, plus the photo when there is one. Diagnostic logs are kept separately.
+6. **Notification.** A Telegram message, with the photo when there is one. A throttle prevents spam but never drops evidence.
+
+## Dual-boot login gate (Linux)
+
+```
+Power on → GRUB → Linux login screen (monitor already running as a systemd service)
+   ├── wrong password (any user)      → evidence + Telegram
+   ├── configured user (e.g. "deni")  → efibootmgr --bootnext <Windows> → reboot → Windows (once)
+   └── any other user (e.g. "admin")  → stays in Linux
+Windows shuts down or restarts        → BootNext is used up → Linux again
+```
+
+- A successful login is read from the journal: `pam_unix(lightdm:session): session opened for user ...`. Greeter, `systemd-user`, `sudo` and `cron` sessions and system accounts (uid < 1000) are ignored. Unlocking the lock screen does not open a session, so it never switches.
+- The switch uses the UEFI **BootNext** variable, so Windows is started directly by the firmware (not chained through GRUB).
+- **Fail-safe:** if anything goes wrong (no Windows entry, `efibootmgr` fails, the reboot fails, the service stops during the delay), the pending switch is cleared and the PC stays in Linux.
+- **DryRun** mode logs what would happen without touching the firmware.
+- Off by default. Nothing is registered and no second journal reader runs unless `DualBoot.Enabled` is `true`.
+
+Status: verified end to end in a VirtualBox VM (Linux Mint 22.3 + Windows 11, UEFI). Not yet deployed on real hardware.
 
 ## Limitations
 
-These are limits of Windows, not bugs:
+These are platform limits or known gaps, not hidden bugs:
 
-- **It only works while you are signed in and the PC is locked.** The app runs inside your Windows session. After a restart or sign-out, attempts on the sign-in screen are not seen, because nobody is signed in yet.
-- **No photo from a Windows Service.** Services run in Session 0 and cannot reliably use the camera, which is why this is a user-session app started by Task Scheduler and not a service.
-- **Wrong PINs have no user name.** Windows logs them with an empty account name.
-- **Biometric failures** (face, fingerprint) usually do not create event 4625 and are not detected.
-- **Camera privacy settings apply.** If "Let desktop apps access your camera" is off, no photo is taken and the reason is saved in `event.json`.
-- Evidence in `C:\ProgramData` is readable by all local users by default.
+- **Windows: only while you are signed in and the PC is locked.** The app runs in your user session (Task Scheduler at sign-in). Attempts on the sign-in screen after a restart are not seen, and a Windows Service cannot reliably use the camera (Session 0 isolation).
+- **Windows: wrong PINs have no user name** in the event log. **Biometric failures** usually do not create event 4625.
+- **Windows: webcam capture** is implemented and handles "no camera" and "access denied", but has not yet been verified with a real webcam. Camera privacy settings apply.
+- **Linux: no webcam capture yet.** Evidence and Telegram work, the photo is missing.
+- **Linux: other desktops.** Service names are those of Linux Mint Cinnamon (`lightdm`, `cinnamon-screensaver`). Another display manager or screen locker needs its name added.
+- **Linux: if `journalctl` crashes**, it is restarted after 5 s and entries written during that gap are not seen.
+- **The login gate is not a hard security boundary on its own.** Choosing Windows in the GRUB menu or the firmware boot menu, or booting from USB, skips Linux. Close these with a GRUB password, a firmware (BIOS) admin password, a disabled boot menu / USB boot, and BitLocker for the Windows data. Someone who can open the case can always reset the firmware.
+- Evidence and secrets are not encrypted at rest. On Windows, `C:\ProgramData` is readable by all local users by default.
 
 ## Architecture
 
 ```
 src/
-  SecurityMonitor.Core            Domain models, interfaces, classifier, policy,
-                                  monitor, notification throttle. No Windows-specific
-                                  code, fully unit tested.
-  SecurityMonitor.Infrastructure  Windows / external implementations: event log watcher,
-                                  MediaCapture webcam, file evidence storage, Telegram notifier.
-  SecurityMonitor.Host            Generic Host, BackgroundService, DI, Serilog.
+  SecurityMonitor.Core                    Models, interfaces, classifiers, policies, monitors.
+                                          No OS-specific code, fully unit tested.
+  SecurityMonitor.Infrastructure.Common   Shared hosting (Worker, DI), file evidence storage,
+                                          Telegram notifier.
+  SecurityMonitor.Infrastructure.Windows  Event log watcher, MediaCapture webcam.
+  SecurityMonitor.Infrastructure.Linux    Journal follower and parser, EFI BootNext switcher.
+  SecurityMonitor.Host.Windows            Windows app (Generic Host, Serilog).
+  SecurityMonitor.Host.Linux              Linux systemd service (Generic Host, Serilog, dual boot).
 tests/
-  SecurityMonitor.Tests           xUnit tests with fake camera, storage and notifier.
+  SecurityMonitor.Tests                   98 xUnit tests with fake camera, storage, notifier,
+                                          boot switcher and command runner.
+deploy/linux/
+  securitymonitor.service                 systemd unit.
 ```
 
-All dependencies point towards `Core`. The decision logic can be tested without real failed logins, a webcam, the event log or a network connection. Adding a new notification channel (e.g. email) means one new class behind `INotifier`, with nothing else changed.
+All dependencies point towards `Core`. The decision logic is tested without real failed logins, a webcam, the event log, the journal, firmware or a network connection. For example, the boot switcher tests check that DryRun never calls `efibootmgr --bootnext` and that a failed reboot clears BootNext again.
+
+`SecurityMonitor.Linux.slnf` is a solution filter with only the projects that build on Linux.
 
 ## Configuration
 
-`appsettings.json`, next to the `.exe`:
+`appsettings.json` (next to the program) holds the defaults that are the same for everyone:
 
 ```json
 "SecurityMonitor": {
   "FailedAttemptsBeforeCapture": 1,
   "AttemptWindowMinutes": 5,
   "CaptureCooldownMinutes": 0,
-  "EvidenceDirectory": "%ProgramData%\\SecurityMonitor\\Evidence"
+  "EvidenceDirectory": "/var/lib/securitymonitor/evidence"
 },
 "Telegram": {
   "Enabled": true,
   "NotificationCooldownMinutes": 0
+},
+"DualBoot": {
+  "Enabled": false,
+  "DryRun": true,
+  "SwitchToWindowsUsers": [],
+  "WindowsBootEntry": "Windows Boot Manager",
+  "RebootDelaySeconds": 5
 }
 ```
 
@@ -121,63 +159,105 @@ All dependencies point towards `Core`. The decision logic can be tested without 
 |---|---|
 | `FailedAttemptsBeforeCapture` | Relevant failed attempts needed to trigger a capture |
 | `AttemptWindowMinutes` | How long an attempt counts toward the threshold |
-| `CaptureCooldownMinutes` | Minimum time between two captures, `0` = capture every time |
-| `EvidenceDirectory` | Where incidents are saved, environment variables are expanded |
-| `Telegram.Enabled` | Turn phone notifications on or off |
-| `Telegram.ChatId` | Who receives the message (your own Telegram chat id) |
-| `Telegram.NotificationCooldownMinutes` | Minimum time between two messages, `0` = notify every time |
+| `CaptureCooldownMinutes` | Minimum time between two captures, `0` = every time |
+| `EvidenceDirectory` | Where incidents are saved (environment variables are expanded) |
+| `Telegram.Enabled` | Phone notifications on or off |
+| `Telegram.NotificationCooldownMinutes` | Minimum time between two messages, `0` = every time |
+| `DualBoot.Enabled` | Linux only: turn the login gate on |
+| `DualBoot.DryRun` | Only log what would happen, never change the boot order |
+| `DualBoot.SwitchToWindowsUsers` | Linux users whose login restarts the PC into Windows |
+| `DualBoot.WindowsBootEntry` | Name of the Windows UEFI entry, as shown by `efibootmgr` |
+| `DualBoot.RebootDelaySeconds` | Pause between setting BootNext and rebooting |
 
-The **bot token and chat id are personal** and are never kept in `appsettings.json` or in git. The app reads them from `C:\ProgramData\SecurityMonitor\secrets.json`:
+**Personal settings and secrets are never kept in the repository.**
+
+| | Windows | Linux |
+|---|---|---|
+| Secrets (bot token, chat id) | `C:\ProgramData\SecurityMonitor\secrets.json` | `/etc/securitymonitor/secrets.json` (root, `chmod 600`) |
+| Personal settings | n/a | `/etc/securitymonitor/settings.json` (root) |
 
 ```json
-{
-  "Telegram": {
-    "BotToken": "your-bot-token",
-    "ChatId": "your-telegram-chat-id"
-  }
-}
+{ "Telegram": { "BotToken": "your-bot-token", "ChatId": "your-telegram-chat-id" } }
 ```
 
-`appsettings.json` holds the settings that are the same for everyone; `secrets.json` holds what is personal to each user.
+Example Linux `settings.json`:
 
-## Installation
+```json
+{ "DualBoot": { "Enabled": true, "DryRun": false, "SwitchToWindowsUsers": ["deni"] } }
+```
 
-Requirements: Windows 10 (2004) or Windows 11, .NET 10 runtime, administrator rights. For phone notifications, a Telegram account.
+## Installation: Windows
 
-1. **Check that failed logons are audited.** Lock the PC, type a wrong PIN, unlock, then open Event Viewer -> Windows Logs -> Security and filter for Event ID **4625**. If nothing appears, enable *Audit Logon -> Failure* in Local Security Policy.
-2. **Set up Telegram (optional).** In Telegram, create a bot with **@BotFather** (`/newbot`) and copy the token. Send your bot any message. Get your chat id from **@userinfobot**. Put the token and the chat id in `secrets.json` (above).
-3. **Publish.** In Visual Studio (run as administrator): right-click `SecurityMonitor.Host` -> Publish -> Folder -> `C:\Program Files\SecurityMonitor`, Release, Framework-dependent, win-x64.
-4. **Start automatically at sign-in.** In Task Scheduler -> Create Task:
-   - General: *Run only when user is logged on*, *Run with highest privileges*
-   - Trigger: *At log on* of your user
-   - Action: program `"C:\Program Files\SecurityMonitor\SecurityMonitor.Host.exe"`, start in `C:\Program Files\SecurityMonitor`
-   - Settings: untick *Stop the task if it runs longer than 3 days*, restart on failure, *Do not start a new instance*
-5. Sign out and back in. `SecurityMonitor.Host.exe` should be visible in Task Manager -> Details.
+Requirements: Windows 10 (2004) or 11, .NET 10 runtime, administrator rights, optionally a Telegram account.
 
-The published app has no window. It is not hidden: it shows up in Task Manager and Task Scheduler, where it can be stopped. Logs are in `C:\ProgramData\SecurityMonitor\Logs`.
+1. **Check that failed logons are audited.** Lock the PC, type a wrong PIN, unlock, open Event Viewer → Windows Logs → Security and filter for Event ID **4625**. If nothing appears, enable *Audit Logon → Failure* in Local Security Policy.
+2. **Telegram (optional).** Create a bot with **@BotFather** (`/newbot`), send it a message, get your chat id from **@userinfobot**, and put both in `secrets.json`.
+3. **Publish.** In Visual Studio (as administrator): right-click `SecurityMonitor.Host.Windows` → Publish → Folder → `C:\Program Files\SecurityMonitor`, Release, framework-dependent, win-x64.
+4. **Start at sign-in.** Task Scheduler → Create Task: *Run only when user is logged on*, *Run with highest privileges*, trigger *At log on* of your user, action `"C:\Program Files\SecurityMonitor\SecurityMonitor.Host.Windows.exe"` (start in `C:\Program Files\SecurityMonitor`), untick *Stop the task if it runs longer than 3 days*.
+5. Sign out and back in. The process is visible in Task Manager → Details. Logs are in `C:\ProgramData\SecurityMonitor\Logs`.
 
-Each user installs on their own PC with their own bot token and chat id; secrets are never shared.
+## Installation: Linux
+
+Tested on Linux Mint 22.3 Cinnamon. Requirements: .NET 10 SDK (`sudo apt install dotnet-sdk-10.0`), root rights, `efibootmgr` for the login gate.
+
+```bash
+git clone https://github.com/DeniMiljevic/SecurityMonitor.git
+cd SecurityMonitor
+dotnet test SecurityMonitor.Linux.slnf
+
+# secrets (only root can read them)
+sudo mkdir -p /etc/securitymonitor
+sudo nano /etc/securitymonitor/secrets.json
+sudo chmod 600 /etc/securitymonitor/secrets.json
+
+# publish and install
+dotnet publish src/SecurityMonitor.Host.Linux -c Release -o ./publish
+sudo mkdir -p /opt/securitymonitor /var/lib/securitymonitor /var/log/securitymonitor
+sudo cp -r ./publish/. /opt/securitymonitor/
+
+# systemd service (starts before the login screen)
+sudo cp deploy/linux/securitymonitor.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now securitymonitor
+journalctl -u securitymonitor -f
+```
+
+**Updating:** stop the service before copying, because overwriting the files of a running .NET program can crash it:
+
+```bash
+sudo systemctl stop securitymonitor
+sudo cp -r ./publish/. /opt/securitymonitor/
+sudo systemctl start securitymonitor
+```
+
+**Login gate:** create `/etc/securitymonitor/settings.json` (above), start with `"DryRun": true`, log out and back in as the configured user and check the log for `DryRun: would set BootNext to ...`. Make sure GRUB stays first in the UEFI boot order (`efibootmgr` → `BootOrder`) and keep a second Linux user that does not switch, for maintenance.
+
+The service is a normal, visible systemd unit: `systemctl status securitymonitor`, `sudo systemctl disable --now securitymonitor` removes it from startup.
 
 ## Privacy and safety
 
-- The app **never reads, stores or intercepts passwords or PINs**. Windows does not write them to the event log, and the evidence format has no field for them.
-- It does not replace or hook the Windows sign-in screen and does not bypass any Windows protection.
-- Photos, logs, the bot token and the chat id stay on the local disk; none of them are committed to git.
+- The app **never reads, stores or intercepts passwords or PINs**. Neither Windows nor PAM writes them to the logs, and the evidence format has no field for them.
+- It does not replace or hook any login screen, does not modify the PAM stack and does not bypass any operating system protection.
+- Photos, logs, the bot token and the chat id stay on the local disk. None of them are committed to git.
 - It is meant for monitoring **your own** computer.
 
 ## Running the tests
 
-Open the solution in Visual Studio and run **Test -> Run All Tests** (39 tests). They cover the classifier, the policy (threshold, time window, cooldown, invalid settings), the notification throttle, and the monitor (a camera, storage or notifier failure does not crash it).
+Visual Studio: **Test → Run All Tests** (98 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf`.
+
+They cover the Windows and Linux classifiers, the journal and `efibootmgr` parsers (with real captured output), the capture policy, the notification throttle, the dual-boot policy and monitor, the boot switcher (DryRun, missing Windows entry, failed `--bootnext`, failed reboot) and the failed-login monitor (a camera, storage or notifier failure does not crash it).
 
 ## Status and roadmap
 
-- [x] Detect failed logins from the Security log
-- [x] Classify physical attempts, PIN vs password
-- [x] Configurable capture policy
-- [x] Webcam capture implemented, with graceful failure (handles no camera / access denied)
-- [x] Evidence storage (JSON + JPEG)
-- [x] Automatic start at sign-in
-- [x] Telegram notification (text verified end to end)
-- [ ] Verified end to end with a real webcam (photo in evidence and in Telegram)
-- [ ] Detection on the sign-in screen before anyone logs in (Windows Service)
+- [x] Windows: detect failed logins (event 4625), PIN vs password
+- [x] Windows: webcam capture with graceful failure, start at sign-in
+- [x] Evidence storage (JSON + JPEG) and Telegram notifications
+- [x] Linux: detect failed logins on the login and lock screen (journald / PAM)
+- [x] Linux: systemd service that starts before the login screen
+- [x] Dual-boot login gate via UEFI BootNext, verified in a VM
+- [ ] Windows webcam capture verified with a real webcam
+- [ ] Linux webcam capture (`ffmpeg` / V4L2)
+- [ ] Startup check that GRUB is first in the UEFI boot order
+- [ ] GRUB password, then deployment on real hardware
+- [ ] Windows: report failed attempts that happened while the app was not running
 - [ ] Restrict evidence folder access to administrators
