@@ -122,7 +122,7 @@ src/
   SecurityMonitor.Host.Windows            Windows app (Generic Host, Serilog).
   SecurityMonitor.Host.Linux              Linux systemd service (Generic Host, Serilog, dual boot).
 tests/
-  SecurityMonitor.Tests                   120 xUnit tests with fake camera, ffmpeg, storage, notifier,
+  SecurityMonitor.Tests                   137 xUnit tests with fake camera, ffmpeg, storage, notifier,
                                           boot switcher and command runner.
 deploy/linux/
   securitymonitor.service                 systemd unit.
@@ -231,12 +231,17 @@ sudo systemctl enable --now securitymonitor
 journalctl -u securitymonitor -f
 ```
 
-**Updating:** stop the service before copying, because overwriting the files of a running .NET program can crash it:
+**Updating:** run the update script. It pulls the latest code, runs the tests, publishes, and restarts the service only if the tests pass. It stops the service before copying, because overwriting the files of a running .NET program can crash it.
 
 ```bash
-sudo systemctl stop securitymonitor
-sudo cp -r ./publish/. /opt/securitymonitor/
-sudo systemctl start securitymonitor
+./deploy/linux/update.sh
+```
+
+**Logs:** the service sends each message to the journal with its real priority, so warnings and errors are highlighted and can be filtered:
+
+```bash
+journalctl -u securitymonitor -f                                  # follow everything
+journalctl -u securitymonitor -p warning --since "7 days ago"     # only problems
 ```
 
 **Login gate:** create `/etc/securitymonitor/settings.json` (above), start with `"DryRun": true`, log out and back in as the configured user and check the log for `DryRun: would set BootNext to ...`. Make sure GRUB stays first in the UEFI boot order (`efibootmgr` → `BootOrder`) and keep a second Linux user that does not switch, for maintenance.
@@ -252,7 +257,7 @@ The service is a normal, visible systemd unit: `systemctl status securitymonitor
 
 ## Running the tests
 
-Visual Studio: **Test → Run All Tests** (120 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf`.
+Visual Studio: **Test → Run All Tests** (137 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf`.
 
 They cover the Windows and Linux classifiers, the journal and `efibootmgr` parsers (with real captured output), the capture policy, the notification throttle, the dual-boot policy and monitor, the boot switcher (DryRun, missing Windows entry, failed `--bootnext`, failed reboot) and the failed-login monitor (a camera, storage or notifier failure does not crash it).
 
