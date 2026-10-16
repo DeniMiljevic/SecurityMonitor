@@ -32,6 +32,8 @@ internal static class ServiceCollectionExtensions
         services.AddSingleton<DualBootMonitor>();
         services.AddSingleton<ICommandRunner, ProcessCommandRunner>();
         services.AddSingleton<IBootSwitcher, EfiBootNextSwitcher>();
+        services.AddSingleton<IBootConfigurationCheck, EfiBootConfigurationCheck>();
+        services.AddSingleton<BootConfigurationMonitor>();
         services.AddSingleton<ISuccessfulLoginWatcher, LinuxSuccessfulLoginWatcher>();
         services.AddHostedService<DualBootWorker>();
 

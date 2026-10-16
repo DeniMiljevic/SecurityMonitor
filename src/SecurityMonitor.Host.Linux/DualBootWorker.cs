@@ -8,13 +8,15 @@ public sealed class DualBootWorker : BackgroundService
 {
     private readonly ISuccessfulLoginWatcher _watcher;
     private readonly DualBootMonitor _monitor;
+    private readonly BootConfigurationMonitor _bootConfig;
     private readonly ILogger<DualBootWorker> _logger;
     private CancellationToken _ct;
 
-    public DualBootWorker(ISuccessfulLoginWatcher watcher, DualBootMonitor monitor, ILogger<DualBootWorker> logger)
+    public DualBootWorker(ISuccessfulLoginWatcher watcher, DualBootMonitor monitor, BootConfigurationMonitor bootConfig, ILogger<DualBootWorker> logger)
     {
         _watcher = watcher;
         _monitor = monitor;
+        _bootConfig = bootConfig;
         _logger = logger;
     }
 
@@ -27,6 +29,7 @@ public sealed class DualBootWorker : BackgroundService
 
         try
         {
+            await _bootConfig.RunAsync(ct);
             await Task.Delay(Timeout.Infinite, ct);
         }
         catch (OperationCanceledException)
