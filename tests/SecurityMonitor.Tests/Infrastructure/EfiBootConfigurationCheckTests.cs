@@ -1,5 +1,6 @@
 ﻿using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Infrastructure.Linux.Boot;
+using SecurityMonitor.Infrastructure.Linux.Processes;
 using SecurityMonitor.Tests.Fakes;
 
 namespace SecurityMonitor.Tests.Infrastructure;

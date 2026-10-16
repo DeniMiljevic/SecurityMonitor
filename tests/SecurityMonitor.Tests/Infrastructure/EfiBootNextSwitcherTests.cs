@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Core.Models;
 using SecurityMonitor.Infrastructure.Linux.Boot;
+using SecurityMonitor.Infrastructure.Linux.Processes;
 using SecurityMonitor.Tests.Fakes;
 
 namespace SecurityMonitor.Tests.Infrastructure;

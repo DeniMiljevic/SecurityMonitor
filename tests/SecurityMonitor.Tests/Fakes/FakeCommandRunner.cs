@@ -1,4 +1,4 @@
-﻿using SecurityMonitor.Infrastructure.Linux.Boot;
+﻿using SecurityMonitor.Infrastructure.Linux.Processes;
 
 namespace SecurityMonitor.Tests.Fakes;
 

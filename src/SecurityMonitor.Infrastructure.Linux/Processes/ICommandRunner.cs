@@ -1,4 +1,4 @@
-﻿namespace SecurityMonitor.Infrastructure.Linux.Boot;
+﻿namespace SecurityMonitor.Infrastructure.Linux.Processes;
 
 public sealed record CommandResult(int ExitCode, string Output, string Error);
 

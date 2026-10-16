@@ -2,6 +2,7 @@
 using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Models;
+using SecurityMonitor.Infrastructure.Linux.Processes;
 
 namespace SecurityMonitor.Infrastructure.Linux.Boot;
 

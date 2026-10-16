@@ -3,6 +3,7 @@ using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Services;
 using SecurityMonitor.Infrastructure.Linux.Boot;
 using SecurityMonitor.Infrastructure.Linux.Journal;
+using SecurityMonitor.Infrastructure.Linux.Processes;
 using SecurityMonitor.Infrastructure.Linux.Webcam;
 
 namespace SecurityMonitor.Host.Linux;
