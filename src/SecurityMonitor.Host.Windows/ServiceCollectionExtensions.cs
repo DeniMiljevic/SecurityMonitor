@@ -30,7 +30,7 @@ internal static class ServiceCollectionExtensions
 
         services.AddSingleton<IUefiVariables, WindowsUefiVariables>();
         services.AddSingleton<IBootConfigurationCheck, UefiBootOrderCheck>();
-        services.AddSingleton<BootConfigurationWorker>();
+        services.AddSingleton<BootConfigurationMonitor>();
         services.AddHostedService<BootConfigurationWorker>();
 
         return services;
