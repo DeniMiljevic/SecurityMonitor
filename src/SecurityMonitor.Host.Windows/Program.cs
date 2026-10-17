@@ -12,7 +12,7 @@ builder.Configuration.AddJsonFile(Path.Combine(Environment.ExpandEnvironmentVari
 
 builder.Services.AddSerilog(config => config.ReadFrom.Configuration(builder.Configuration));
 builder.Services.AddSecurityMonitorCore(builder.Configuration);
-builder.Services.AddWindowsServices();
+builder.Services.AddWindowsServices(builder.Configuration);
 
 var host = builder.Build();
 host.Run();
