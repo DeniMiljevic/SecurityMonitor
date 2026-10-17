@@ -94,6 +94,7 @@ Windows shuts down or restarts        → BootNext is used up → Linux again
 - **Fail-safe:** if anything goes wrong (no Windows entry, `efibootmgr` fails, the reboot fails, the service stops during the delay), the pending switch is cleared and the PC stays in Linux.
 - **DryRun** mode logs what would happen without touching the firmware.
 - **Startup check:** when the service starts it checks that Linux is first in the UEFI boot order and that the Windows entry exists, and sends a Telegram warning if not (retried while the network comes up).
+- **Windows-side check:** Windows updates can put Windows Boot Manager first in the UEFI boot order, and then Linux never starts to notice. With `DualBoot.Enabled` on Windows too, the Windows app reads the `BootOrder` and `Boot####` UEFI variables at startup (read-only, through the documented `GetFirmwareEnvironmentVariableEx` API) and sends a Telegram warning if Windows is the first active entry, with the `bcdedit` command to fix it. It never changes the boot order itself.
 - Off by default. Nothing is registered and no second journal reader runs unless `DualBoot.Enabled` is `true`.
 
 Status: verified end to end in a VirtualBox VM (Linux Mint 22.3 + Windows 11, UEFI). Not yet deployed on real hardware.
@@ -118,14 +119,16 @@ src/
   SecurityMonitor.Core                    Models, interfaces, classifiers, policies, monitors.
                                           No OS-specific code, fully unit tested.
   SecurityMonitor.Infrastructure.Common   Shared hosting (Worker, DI), file evidence storage,
-                                          Telegram notifier.
-  SecurityMonitor.Infrastructure.Windows  Event log watcher, MediaCapture webcam.
+                                          Telegram notifier, UEFI boot entry decoding and
+                                          boot order check.
+  SecurityMonitor.Infrastructure.Windows  Event log watcher, MediaCapture webcam,
+                                          UEFI variable reader (P/Invoke).
   SecurityMonitor.Infrastructure.Linux    Journal follower and parser, EFI BootNext switcher.
-  SecurityMonitor.Host.Windows            Windows app (Generic Host, Serilog).
+  SecurityMonitor.Host.Windows            Windows app (Generic Host, Serilog, boot order check).
   SecurityMonitor.Host.Linux              Linux systemd service (Generic Host, Serilog, dual boot).
 tests/
-  SecurityMonitor.Tests                   137 xUnit tests with fake camera, ffmpeg, storage, notifier,
-                                          boot switcher and command runner.
+  SecurityMonitor.Tests                   143 xUnit tests with fake camera, ffmpeg, storage, notifier,
+                                          boot switcher, command runner and UEFI variables.
 deploy/linux/
   securitymonitor.service                 systemd unit.
   update.sh                               Pull, test, publish and restart the service.
@@ -177,7 +180,7 @@ All dependencies point towards `Core`. The decision logic is tested without real
 | `LinuxWebcam.Device` | Linux only: camera device, usually `/dev/video0` |
 | `LinuxWebcam.WarmupSeconds` | Wait before the photo, so the camera can adjust to the light |
 | `LinuxWebcam.TimeoutSeconds` | Give up if the camera does not answer in time |
-| `DualBoot.Enabled` | Linux only: turn the login gate on |
+| `DualBoot.Enabled` | Linux: turn the login gate on. Windows: check at startup that Windows has not put itself first in the UEFI boot order (needs administrator rights) |
 | `DualBoot.DryRun` | Only log what would happen, never change the boot order |
 | `DualBoot.SwitchToWindowsUsers` | Linux users whose login restarts the PC into Windows |
 | `DualBoot.WindowsBootEntry` | Name of the Windows UEFI entry, as shown by `efibootmgr` |
@@ -194,6 +197,15 @@ All dependencies point towards `Core`. The decision logic is tested without real
 { "Telegram": { "BotToken": "your-bot-token", "ChatId": "your-telegram-chat-id" } }
 ```
 
+On a dual-boot PC, the Windows `secrets.json` can also turn on the boot order check:
+
+```json
+{
+  "Telegram": { "BotToken": "your-bot-token", "ChatId": "your-telegram-chat-id" },
+  "DualBoot": { "Enabled": true }
+}
+```
+
 Example Linux `settings.json`:
 
 ```json
@@ -208,7 +220,8 @@ Requirements: Windows 10 (2004) or 11, .NET 10 runtime, administrator rights, op
 2. **Telegram (optional).** Create a bot with **@BotFather** (`/newbot`), send it a message, get your chat id from **@userinfobot**, and put both in `secrets.json`.
 3. **Publish.** In Visual Studio (as administrator): right-click `SecurityMonitor.Host.Windows` → Publish → Folder → `C:\Program Files\SecurityMonitor`, Release, framework-dependent, win-x64.
 4. **Start at sign-in.** Task Scheduler → Create Task: *Run only when user is logged on*, *Run with highest privileges*, trigger *At log on* of your user, action `"C:\Program Files\SecurityMonitor\SecurityMonitor.Host.Windows.exe"` (start in `C:\Program Files\SecurityMonitor`), untick *Stop the task if it runs longer than 3 days*.
-5. Sign out and back in. The process is visible in Task Manager → Details. Logs are in `C:\ProgramData\SecurityMonitor\Logs`.
+5. **Dual boot (optional).** Add `"DualBoot": { "Enabled": true }` to `secrets.json` (see above). The log then shows `Boot configuration OK` at startup, or a warning if Windows is first in the UEFI boot order.
+6. Sign out and back in. The process is visible in Task Manager → Details. Logs are in `C:\ProgramData\SecurityMonitor\Logs`.
 
 ## Installation: Linux
 
@@ -262,11 +275,11 @@ The service is a normal, visible systemd unit: `systemctl status securitymonitor
 
 ## Running the tests
 
-Visual Studio: **Test → Run All Tests** (137 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf`.
+Visual Studio: **Test → Run All Tests** (143 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf`.
+
+They cover the Windows and Linux classifiers, the journal and `efibootmgr` parsers (with real captured output), the UEFI boot entry and boot order decoding, the capture policy, the notification throttle, the dual-boot policy and monitor, the boot switcher (DryRun, missing Windows entry, failed `--bootnext`, failed reboot), the boot order checks on both systems (including an inactive Linux entry that the firmware skips) and the failed-login monitor (a camera, storage or notifier failure does not crash it).
 
 Every push and pull request to `main` is built and tested by GitHub Actions on two runners: Ubuntu (the Linux solution filter) and Windows (the whole solution, including the Windows host). The badge at the top shows the result of the latest run.
-
-They cover the Windows and Linux classifiers, the journal and `efibootmgr` parsers (with real captured output), the capture policy, the notification throttle, the dual-boot policy and monitor, the boot switcher (DryRun, missing Windows entry, failed `--bootnext`, failed reboot) and the failed-login monitor (a camera, storage or notifier failure does not crash it).
 
 ## Status and roadmap
 
@@ -281,7 +294,7 @@ They cover the Windows and Linux classifiers, the journal and `efibootmgr` parse
 - [ ] Linux webcam capture verified with a real webcam
 - [x] Startup check of the UEFI boot order and the Windows entry, with a Telegram warning
 - [x] Update script for Linux and GitHub Actions CI (Linux and Windows)
-- [ ] Windows-side check that Windows has not put itself first in the boot order
+- [x] Windows-side check that Windows has not put itself first in the boot order, verified in the VM and read on real hardware
 - [ ] GRUB password, then deployment on real hardware
 - [ ] Windows: report failed attempts that happened while the app was not running
 - [ ] Restrict evidence folder access to administrators
