@@ -12,6 +12,7 @@ internal static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddWindowsServices(this IServiceCollection services, IConfiguration config)
     {
+        services.AddHostedService<DataDirectoryProtector>();
         services.AddSingleton<IFailedLoginWatcher, WindowsFailedLoginWatcher>();
         services.AddSingleton<IFailedLoginClassifier, WindowsFailedLoginClassifier>();
         services.AddSingleton<IWebcamCapture, WindowsWebcamCapture>();
