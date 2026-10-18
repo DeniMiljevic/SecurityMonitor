@@ -109,7 +109,7 @@ These are platform limits or known gaps, not hidden bugs:
 - **Linux: webcam capture** is implemented with `ffmpeg` and unit tested, but has not yet been verified with a real webcam.
 - **Linux: other desktops.** Service names are those of Linux Mint Cinnamon (`lightdm`, `cinnamon-screensaver`). Another display manager or screen locker needs its name added.
 - **Linux: if `journalctl` crashes**, it is restarted after 5 s and entries written during that gap are not seen.
-- **The login gate is not a hard security boundary on its own.** Choosing Windows in the GRUB menu or the firmware boot menu, or booting from USB, skips Linux. Close these with a GRUB password, a firmware (BIOS) admin password, a disabled boot menu / USB boot, and BitLocker for the Windows data. Someone who can open the case can always reset the firmware.
+- **The login gate is not a hard security boundary on its own.** Choosing Windows in the GRUB menu or the firmware boot menu, or booting from USB, skips Linux. Close these with a GRUB password (see [Hardening the boot](#hardening-the-boot-grub-password)), a firmware (BIOS) admin password, a disabled boot menu / USB boot, and BitLocker for the Windows data. Someone who can open the case can always reset the firmware.
 - Evidence and secrets are not encrypted at rest. On Windows, `C:\ProgramData` is readable by all local users by default.
 
 ## Architecture
@@ -266,6 +266,62 @@ journalctl -u securitymonitor -p warning --since "7 days ago"     # only problem
 
 The service is a normal, visible systemd unit: `systemctl status securitymonitor`, `sudo systemctl disable --now securitymonitor` removes it from startup.
 
+## Hardening the boot: GRUB password
+
+Without a GRUB password, anyone at the keyboard can open the GRUB menu (Esc while it is hidden) and:
+
+- pick **Windows Boot Manager** and skip Linux and the login gate,
+- press **e** on the Linux entry and boot with `init=/bin/bash`, which gives a root shell without any password,
+- press **c** for the GRUB console, or start **recovery mode**.
+
+The setup below keeps the normal Linux start password-free and locks everything else behind a GRUB superuser. The GRUB user has nothing to do with the Linux users. Verified in the VM.
+
+```
+Linux Mint (default)      → starts without a password (--unrestricted), but e / c need the GRUB password
+Advanced options/recovery → GRUB password
+Windows Boot Manager      → GRUB password (the owner's fallback way into Windows)
+UEFI Firmware Settings    → GRUB password
+```
+
+The login gate itself is not affected: `BootNext` starts Windows directly from the firmware and never goes through GRUB.
+
+1. **Back up** (to your home folder, not to `/etc/grub.d/`, because `update-grub` runs every executable file in that folder):
+   ```bash
+   sudo cp /etc/default/grub ~/grub.default.bak
+   sudo cp /etc/grub.d/10_linux ~/10_linux.bak
+   ```
+2. **Create the password hash.** GRUB always uses the **US keyboard layout**, so use a long password of lowercase letters and digits only (no `z`/`y`, no special characters), otherwise it may not match what you type at boot. Keep it in a password manager and do not share the hash.
+   ```bash
+   grub-mkpasswd-pbkdf2
+   ```
+3. **Define the GRUB superuser** in `/etc/grub.d/01_password` (then `sudo chmod 700 /etc/grub.d/01_password`):
+   ```sh
+   #!/bin/sh
+   cat <<'EOF'
+   set superusers="grubadmin"
+   password_pbkdf2 grubadmin grub.pbkdf2.sha512.10000.<your hash>
+   EOF
+   ```
+4. **Let the normal Linux entry start without a password** by adding `--unrestricted` to its class line, and **make Linux the fixed default** (with `GRUB_DEFAULT=saved`, a remembered Windows entry would stop every boot at the password prompt):
+   ```bash
+   sudo sed -i 's/^CLASS="--class gnu-linux --class gnu --class os"$/CLASS="--class gnu-linux --class gnu --class os --unrestricted"/' /etc/grub.d/10_linux
+   sudo sed -i 's/^GRUB_DEFAULT=saved$/GRUB_DEFAULT=0/' /etc/default/grub
+   grep -n '^CLASS=' /etc/grub.d/10_linux
+   grep -n '^GRUB_DEFAULT' /etc/default/grub
+   ```
+5. **Apply and check:**
+   ```bash
+   sudo update-grub
+   sudo grep -n -E 'superusers|menuentry |submenu ' /boot/grub/grub.cfg | cut -c1-110
+   ```
+   Only the main Linux entry should have `--unrestricted`.
+6. **Test after a restart:** the PC starts Linux without a prompt; in the menu, **e**, **c**, *Advanced options*, *UEFI Firmware Settings* and *Windows Boot Manager* ask for the GRUB user and password, a wrong one returns to the menu, and the right one works. GRUB forgets the login at the next restart.
+
+Notes:
+
+- `/etc/grub.d/10_linux` belongs to the GRUB package. If an update asks whether to keep the modified file, keep it, and check the `CLASS=` line again after larger updates.
+- GRUB cannot protect the **firmware boot menu** (F12) or booting from USB. Lock those with a firmware (BIOS) admin password.
+
 ## Privacy and safety
 
 - The app **never reads, stores or intercepts passwords or PINs**. Neither Windows nor PAM writes them to the logs, and the evidence format has no field for them.
@@ -295,6 +351,7 @@ Every push and pull request to `main` is built and tested by GitHub Actions on t
 - [x] Startup check of the UEFI boot order and the Windows entry, with a Telegram warning
 - [x] Update script for Linux and GitHub Actions CI (Linux and Windows)
 - [x] Windows-side check that Windows has not put itself first in the boot order, verified in the VM and read on real hardware
-- [ ] GRUB password, then deployment on real hardware
+- [x] GRUB password: Linux starts without it, everything else needs it, verified in the VM
+- [ ] Firmware (BIOS) password and deployment on real hardware
 - [ ] Windows: report failed attempts that happened while the app was not running
 - [ ] Restrict evidence folder access to administrators
