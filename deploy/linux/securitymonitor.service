@@ -13,6 +13,7 @@ RestartSec=5
 # On stop, signal only our process. It stops its own journalctl child first;
 # systemd kills anything left over afterwards.
 KillMode=mixed
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target
