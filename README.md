@@ -110,7 +110,7 @@ These are platform limits or known gaps, not hidden bugs:
 - **Linux: other desktops.** Service names are those of Linux Mint Cinnamon (`lightdm`, `cinnamon-screensaver`). Another display manager or screen locker needs its name added.
 - **Linux: if `journalctl` crashes**, it is restarted after 5 s and entries written during that gap are not seen.
 - **The login gate is not a hard security boundary on its own.** Choosing Windows in the GRUB menu or the firmware boot menu, or booting from USB, skips Linux. Close these with a GRUB password (see [Hardening the boot](#hardening-the-boot-grub-password)), a firmware (BIOS) admin password, a disabled boot menu / USB boot, and BitLocker for the Windows data. Someone who can open the case can always reset the firmware.
-- Evidence and secrets are not encrypted at rest. On Windows, `C:\ProgramData` is readable by all local users by default.
+- Evidence and secrets are not encrypted at rest. Access is limited to administrators (Windows) and root (Linux), but anyone with those rights, or with the disk in another computer, can read them. BitLocker or LUKS covers the second case.
 
 ## Architecture
 
@@ -190,7 +190,7 @@ All dependencies point towards `Core`. The decision logic is tested without real
 
 | | Windows | Linux |
 |---|---|---|
-| Secrets (bot token, chat id) | `C:\ProgramData\SecurityMonitor\secrets.json` | `/etc/securitymonitor/secrets.json` (root, `chmod 600`) |
+| Secrets (bot token, chat id) | `C:\ProgramData\SecurityMonitor\secrets.json` (administrators only, edit with Notepad run as administrator) | `/etc/securitymonitor/secrets.json` (root, `chmod 600`) |
 | Personal settings | n/a | `/etc/securitymonitor/settings.json` (root) |
 
 ```json
@@ -254,6 +254,8 @@ journalctl -u securitymonitor -f
 ```bash
 ./deploy/linux/update.sh
 ```
+
+When updating from a version before `UMask=0077`, make the existing evidence and logs root-only once: `sudo chmod -R go-rwx /var/lib/securitymonitor /var/log/securitymonitor`.
 
 **Logs:** the service sends each message to the journal with its real priority, so warnings and errors are highlighted and can be filtered:
 
@@ -327,6 +329,7 @@ Notes:
 - The app **never reads, stores or intercepts passwords or PINs**. Neither Windows nor PAM writes them to the logs, and the evidence format has no field for them.
 - It does not replace or hook any login screen, does not modify the PAM stack and does not bypass any operating system protection.
 - Photos, logs, the bot token and the chat id stay on the local disk. None of them are committed to git.
+- Only administrators can read them. On Windows the app sets the permissions of `C:\ProgramData\SecurityMonitor` (and of the evidence folder, if it is elsewhere) on every start: only SYSTEM and Administrators, nothing inherited from `C:\ProgramData`, so the bot token and photos are not readable by other users. On Linux the systemd unit sets `UMask=0077`, so everything the service creates is readable only by root. Explorer runs without administrator rights; opening the folder and clicking *Continue* adds your account to it, and the app removes that again at the next start. The photos are on Telegram anyway.
 - It is meant for monitoring **your own** computer.
 
 ## Running the tests
@@ -354,4 +357,4 @@ Every push and pull request to `main` is built and tested by GitHub Actions on t
 - [x] GRUB password: Linux starts without it, everything else needs it, verified in the VM
 - [ ] Firmware (BIOS) password and deployment on real hardware
 - [ ] Windows: report failed attempts that happened while the app was not running
-- [ ] Restrict evidence folder access to administrators
+- [x] Restrict evidence, logs and secrets to administrators (Windows) and root (Linux)
