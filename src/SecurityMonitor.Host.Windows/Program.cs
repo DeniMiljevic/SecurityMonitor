@@ -10,6 +10,7 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
 
 builder.Configuration.AddJsonFile(WindowsPaths.SecretsFile, optional: true, reloadOnChange: false);
 
+builder.Services.AddWindowsService(options => options.ServiceName = "SecurityMonitor");
 builder.Services.AddSerilog(config => config.ReadFrom.Configuration(builder.Configuration));
 builder.Services.AddSecurityMonitorCore(builder.Configuration);
 builder.Services.AddWindowsServices(builder.Configuration);

@@ -5,6 +5,7 @@ using SecurityMonitor.Infrastructure.Common.Firmware;
 using SecurityMonitor.Infrastructure.Windows.Firmware;
 using SecurityMonitor.Infrastructure.Windows.Webcam;
 using SecurityMonitor.Infrastructure.Windows.WindowsEventLog;
+using Microsoft.Extensions.Hosting.WindowsServices;
 
 namespace SecurityMonitor.Host.Windows;
 
@@ -15,7 +16,11 @@ internal static class ServiceCollectionExtensions
         services.AddHostedService<DataDirectoryProtector>();
         services.AddSingleton<IFailedLoginWatcher, WindowsFailedLoginWatcher>();
         services.AddSingleton<IFailedLoginClassifier, WindowsFailedLoginClassifier>();
-        services.AddSingleton<IWebcamCapture, WindowsWebcamCapture>();
+        
+        if (WindowsServiceHelpers.IsWindowsService())
+            services.AddSingleton<IWebcamCapture, ServiceSessionWebcamCapture>();
+        else
+            services.AddSingleton<IWebcamCapture, WindowsWebcamCapture>();
 
         services.AddBootOrderCheck(config);
 
