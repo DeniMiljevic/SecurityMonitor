@@ -23,4 +23,8 @@
     <ProjectReference Include="..\SecurityMonitor.Infrastructure.Common\SecurityMonitor.Infrastructure.Common.csproj" />
     <ProjectReference Include="..\SecurityMonitor.Infrastructure.Windows\SecurityMonitor.Infrastructure.Windows.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+	<InternalsVisibleTo Include="SecurityMonitor.Tests.Windows" />	
+  </ItemGroup>
 </Project>
