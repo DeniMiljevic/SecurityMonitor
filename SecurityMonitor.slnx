@@ -10,6 +10,7 @@
     <Project Path="src/SecurityMonitor.Infrastructure.Windows/SecurityMonitor.Infrastructure.Windows.csproj" Id="2475cd9c-6d33-4299-90a8-e87c66b70be5" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/SecurityMonitor.Tests.Api/SecurityMonitor.Tests.Api.csproj" Id="c81b25a6-6470-417b-a9df-24618a5f9865" />
     <Project Path="tests/SecurityMonitor.Tests.Windows/SecurityMonitor.Tests.Windows.csproj" Id="4f9b4fcb-2f26-42bf-82ac-9599755e9dfd" />
     <Project Path="tests/SecurityMonitor.Tests/SecurityMonitor.Tests.csproj" Id="29185060-d147-4900-96f3-1607b9f3c82a" />
   </Folder>
