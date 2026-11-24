@@ -1,12 +1,13 @@
-﻿using SecurityMonitor.Core.Configuration;
+﻿using Microsoft.Extensions.Hosting.WindowsServices;
+using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Services;
 using SecurityMonitor.Infrastructure.Common.Firmware;
+using SecurityMonitor.Infrastructure.Common.Hosting;
+using SecurityMonitor.Infrastructure.Data;
 using SecurityMonitor.Infrastructure.Windows.Firmware;
 using SecurityMonitor.Infrastructure.Windows.Webcam;
 using SecurityMonitor.Infrastructure.Windows.WindowsEventLog;
-using Microsoft.Extensions.Hosting.WindowsServices;
-using SecurityMonitor.Infrastructure.Common.Hosting;
 using Serilog;
 
 namespace SecurityMonitor.Host.Windows;
@@ -19,6 +20,7 @@ internal static class ServiceCollectionExtensions
         services.AddSerilog(serilog => serilog.ReadFrom.Configuration(config));
         services.AddSecurityMonitorCore(config);
         services.AddWindowsServices(config);
+        services.AddIncidentDatabase(config);
 
         return services;
     }

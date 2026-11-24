@@ -43,7 +43,8 @@ public class WindowsHostCompositionTests
             ["Telegram:Enabled"] = telegram.ToString(),
             ["Telegram:BotToken"] = "test-token",
             ["Telegram:ChatId"] = "1",
-            ["DualBoot:Enabled"] = dualBoot.ToString()
+            ["DualBoot:Enabled"] = dualBoot.ToString(),
+            ["ConnectionStrings:SecurityMonitor"] = "Data Source=:memory:"
         });
 
         builder.ConfigureContainer(new DefaultServiceProviderFactory(new ServiceProviderOptions
