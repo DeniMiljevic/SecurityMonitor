@@ -60,7 +60,7 @@ public sealed class WindowsWebcamCapture : IWebcamCapture, IDisposable
                 reader.ReadBytes(jpeg);
             }
 
-            _logger.LogInformation("Photo captured ({Size} bytes) from {Camera}", jpeg.Length, cameras[0].Name);
+            _logger.LogInformation("Photo captured ({SizeKb:0} KB) from {Camera}", jpeg.Length / 1024.0, cameras[0].Name);
             return CaptureResult.Succeeded(jpeg);
         }
         catch (OperationCanceledException)
