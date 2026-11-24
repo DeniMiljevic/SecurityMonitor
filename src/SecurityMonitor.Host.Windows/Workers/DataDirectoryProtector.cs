@@ -1,7 +1,7 @@
 ﻿using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Infrastructure.Windows.Security;
 
-namespace SecurityMonitor.Host.Windows;
+namespace SecurityMonitor.Host.Windows.Workers;
 
 public sealed class DataDirectoryProtector : IHostedService
 {

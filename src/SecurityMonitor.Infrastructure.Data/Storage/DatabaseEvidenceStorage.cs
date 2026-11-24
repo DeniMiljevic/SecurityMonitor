@@ -2,8 +2,9 @@
 using Microsoft.Extensions.Logging;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Models;
+using SecurityMonitor.Infrastructure.Data.Entities;
 
-namespace SecurityMonitor.Infrastructure.Data;
+namespace SecurityMonitor.Infrastructure.Data.Storage;
 
 public sealed class DatabaseEvidenceStorage : IEvidenceStorage
 {

@@ -2,9 +2,10 @@
 using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Services;
+using SecurityMonitor.Host.Windows.Workers;
 using SecurityMonitor.Infrastructure.Common.Firmware;
 using SecurityMonitor.Infrastructure.Common.Hosting;
-using SecurityMonitor.Infrastructure.Data;
+using SecurityMonitor.Infrastructure.Data.Hosting;
 using SecurityMonitor.Infrastructure.Windows.Firmware;
 using SecurityMonitor.Infrastructure.Windows.Webcam;
 using SecurityMonitor.Infrastructure.Windows.WindowsEventLog;

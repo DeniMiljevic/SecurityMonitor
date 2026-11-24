@@ -5,8 +5,9 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Infrastructure.Common.Storage;
+using SecurityMonitor.Infrastructure.Data.Storage;
 
-namespace SecurityMonitor.Infrastructure.Data;
+namespace SecurityMonitor.Infrastructure.Data.Hosting;
 
 public static class DataServiceCollectionExtensions
 {

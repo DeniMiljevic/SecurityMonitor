@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace SecurityMonitor.Infrastructure.Data;
+namespace SecurityMonitor.Infrastructure.Data.Hosting;
 
 public sealed class DatabaseMigrator : IHostedService
 {

@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using SecurityMonitor.Infrastructure.Data.Entities;
 
 namespace SecurityMonitor.Infrastructure.Data;
 

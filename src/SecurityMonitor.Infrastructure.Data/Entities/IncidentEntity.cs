@@ -1,6 +1,6 @@
 ﻿using SecurityMonitor.Core.Models;
 
-namespace SecurityMonitor.Infrastructure.Data;
+namespace SecurityMonitor.Infrastructure.Data.Entities;
 
 public sealed class IncidentEntity
 {

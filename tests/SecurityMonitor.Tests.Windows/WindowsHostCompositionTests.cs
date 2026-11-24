@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SecurityMonitor.Host.Windows;
+using SecurityMonitor.Host.Windows.Workers;
 using GenericHost = Microsoft.Extensions.Hosting.Host;
 
 namespace SecurityMonitor.Tests.Windows;
