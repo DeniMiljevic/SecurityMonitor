@@ -18,6 +18,7 @@
     <ProjectReference Include="..\..\src\SecurityMonitor.Core\SecurityMonitor.Core.csproj" />
     <ProjectReference Include="..\..\src\SecurityMonitor.Infrastructure.Common\SecurityMonitor.Infrastructure.Common.csproj" />
     <ProjectReference Include="..\..\src\SecurityMonitor.Infrastructure.Linux\SecurityMonitor.Infrastructure.Linux.csproj" />
+	<ProjectReference Include="..\..\src\SecurityMonitor.Infrastructure.Data\SecurityMonitor.Infrastructure.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>

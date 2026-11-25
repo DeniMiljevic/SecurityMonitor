@@ -1,7 +1,7 @@
 ﻿using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Infrastructure.Windows.Security;
 
-namespace SecurityMonitor.Host.Windows;
+namespace SecurityMonitor.Host.Windows.Workers;
 
 public sealed class DataDirectoryProtector : IHostedService
 {
@@ -21,6 +21,8 @@ public sealed class DataDirectoryProtector : IHostedService
         foreach (string directory in new[] { WindowsPaths.DataDirectory, evidence }.Distinct(StringComparer.OrdinalIgnoreCase))
             Protect(directory);
 
+        ProtectSecrets();
+
         return Task.CompletedTask;
     }
 
@@ -36,6 +38,22 @@ public sealed class DataDirectoryProtector : IHostedService
         catch (Exception ex)
         {
             _logger.LogWarning("Could not limit access to {Directory} to administratos: {Error} Run the app as administrator", directory, ex.Message);
+        }
+    }
+
+    private void ProtectSecrets()
+    {
+        if (!File.Exists(WindowsPaths.SecretsFile))
+            return;
+
+        try
+        {
+            RestrictedFile.Apply(WindowsPaths.SecretsFile, readers: []);
+            _logger.LogInformation("Access to {File} is limited to administrators", WindowsPaths.SecretsFile);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning("Could not limit access to {File} to administrators: {Error} Run the app as administrator", WindowsPaths.SecretsFile, ex.Message);
         }
     }
 }

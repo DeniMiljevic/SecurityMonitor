@@ -2,8 +2,10 @@
   "solution": {
     "path": "SecurityMonitor.slnx",
     "projects": [
+      "src/SecurityMonitor.Contracts/SecurityMonitor.Contracts.csproj",
       "src/SecurityMonitor.Core/SecurityMonitor.Core.csproj",
       "src/SecurityMonitor.Infrastructure.Common/SecurityMonitor.Infrastructure.Common.csproj",
+      "src/SecurityMonitor.Infrastructure.Data/SecurityMonitor.Infrastructure.Data.csproj",
       "src/SecurityMonitor.Infrastructure.Linux/SecurityMonitor.Infrastructure.Linux.csproj",
       "src/SecurityMonitor.Host.Linux/SecurityMonitor.Host.Linux.csproj",
       "tests/SecurityMonitor.Tests/SecurityMonitor.Tests.csproj"

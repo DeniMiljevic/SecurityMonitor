@@ -1,6 +1,6 @@
 ﻿using SecurityMonitor.Core.Services;
 
-namespace SecurityMonitor.Host.Windows;
+namespace SecurityMonitor.Host.Windows.Workers;
 
 public sealed class BootConfigurationWorker : BackgroundService
 {
