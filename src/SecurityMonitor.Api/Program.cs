@@ -17,5 +17,6 @@ var app = builder.Build();
 
 app.UseMiddleware<ApiTokenMiddleware>();
 app.MapStatusEndpoints();
+app.MapIncidentEndpoints();
 
 app.Run();

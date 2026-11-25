@@ -12,7 +12,13 @@ public sealed class MonitorClient : IMonitorService
 
     public MonitorClient(IConfiguration config) => _pipeName = config["Monitor:PipeName"] ?? MonitorPipe.Name;
 
-    public async Task<MonitorStatus> GetStatusAsync(CancellationToken ct)
+    public Task<MonitorStatus> GetStatusAsync(CancellationToken ct) =>
+        CallAsync(monitor => monitor.GetStatusAsync(ct), ct);
+
+    public Task<IReadOnlyList<IncidentSummary>> GetIncidentsAsync(int take, CancellationToken ct) =>
+        CallAsync(monitor => monitor.GetIncidentsAsync(take, ct), ct);
+
+    private async Task<T> CallAsync<T>(Func<IMonitorService, Task<T>> call, CancellationToken ct)
     {
         await using var pipe = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await pipe.ConnectAsync(ConnectTimeoutMs, ct);
@@ -21,6 +27,6 @@ public sealed class MonitorClient : IMonitorService
         IMonitorService monitor = rpc.Attach<IMonitorService>();
         rpc.StartListening();
 
-        return await monitor.GetStatusAsync(ct);
+        return await call(monitor);
     }
 }

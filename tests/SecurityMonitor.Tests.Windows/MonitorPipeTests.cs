@@ -12,6 +12,10 @@ namespace SecurityMonitor.Tests.Windows;
 public sealed class MonitorPipeTests
 {
     private static readonly MonitorStatus Status = new("1.2.3.4", DateTimeOffset.UnixEpoch, IncidentCount: 5);
+    private static readonly IReadOnlyList<IncidentSummary> Incidents =
+    [
+        new(1, new DateTimeOffset(2026, 10, 10, 20, 0, 0, TimeSpan.Zero), "Pin", "user", "PC", 3, false, "No camera found")
+    ];
     private static readonly string CurrentUser = WindowsIdentity.GetCurrent().Name;
 
     private readonly string _pipeName = $"SecurityMonitor.Tests.{Guid.NewGuid():N}";
@@ -21,7 +25,17 @@ public sealed class MonitorPipeTests
     {
         using MonitorPipeListener listener = await StartListenerAsync(clientAccount: CurrentUser);
 
-        Assert.Equal(Status, await GetStatusOverPipeAsync());
+        Assert.Equal(Status, await CallOverPipeAsync(monitor => monitor.GetStatusAsync(CancellationToken.None)));
+
+        await listener.StopAsync(CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task AllowedAccount_GetsTheIncidents()
+    {
+        using MonitorPipeListener listener = await StartListenerAsync(clientAccount: CurrentUser);
+
+        Assert.Equal(Incidents, await CallOverPipeAsync(monitor => monitor.GetIncidentsAsync(10, CancellationToken.None)));
 
         await listener.StopAsync(CancellationToken.None);
     }
@@ -54,28 +68,26 @@ public sealed class MonitorPipeTests
 
         using MonitorPipeListener listener = await StartListenerAsync(clientAccount: CurrentUser);
 
-        // The listener gives up instead of waiting for clients on someone else's pipe.
         await listener.ExecuteTask!.WaitAsync(TimeSpan.FromSeconds(5));
     }
 
     private async Task<MonitorPipeListener> StartListenerAsync(string clientAccount)
     {
-        var listener = new MonitorPipeListener(new FakeMonitorService(Status), _pipeName, clientAccount, NullLogger<MonitorPipeListener>.Instance);
+        var listener = new MonitorPipeListener(new FakeMonitorService(Status, Incidents), _pipeName, clientAccount, NullLogger<MonitorPipeListener>.Instance);
         await listener.StartAsync(CancellationToken.None);
 
         return listener;
     }
 
-    private async Task<MonitorStatus> GetStatusOverPipeAsync()
+    private async Task<T> CallOverPipeAsync<T>(Func<IMonitorService, Task<T>> call)
     {
         await using var pipe = new NamedPipeClientStream(".", _pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await pipe.ConnectAsync(5000);
 
-        // Same handler and formatter as MonitorClient in the API.
         using var rpc = new JsonRpc(new HeaderDelimitedMessageHandler(pipe, new SystemTextJsonFormatter()));
         IMonitorService monitor = rpc.Attach<IMonitorService>();
         rpc.StartListening();
 
-        return await monitor.GetStatusAsync(CancellationToken.None);
+        return await call(monitor);
     }
 }

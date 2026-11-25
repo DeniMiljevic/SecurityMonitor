@@ -28,13 +28,17 @@ internal sealed class FakeApi : IDisposable
 
     public FakeMonitorService Monitor { get; } = new();
 
-    public Task<HttpResponseMessage> GetStatusAsync() => _factory.CreateClient().GetAsync("/api/status");
+    public Task<HttpResponseMessage> GetStatusAsync() => GetAsync("/api/status", token: null);
 
-    public async Task<HttpResponseMessage> GetStatusAsync(string token, string host = "localhost")
+    public Task<HttpResponseMessage> GetStatusAsync(string token, string host = "localhost") => GetAsync("/api/status", token, host);
+
+    public async Task<HttpResponseMessage> GetAsync(string path, string? token = Token, string host = "localhost")
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/status");
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
         request.Headers.Host = host;
+
+        if (token is not null)
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         return await _factory.CreateClient().SendAsync(request);
     }

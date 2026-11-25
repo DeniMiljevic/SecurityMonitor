@@ -1,24 +1,21 @@
 ﻿using System.Diagnostics;
-using Microsoft.EntityFrameworkCore;
 using SecurityMonitor.Contracts;
-using SecurityMonitor.Infrastructure.Data;
+using SecurityMonitor.Infrastructure.Data.Queries;
 
 namespace SecurityMonitor.Host.Windows.Pipe;
 
 internal sealed class MonitorService : IMonitorService
 {
     private static readonly DateTimeOffset StartedAtUtc = Process.GetCurrentProcess().StartTime.ToUniversalTime();
-    private readonly IDbContextFactory<SecurityMonitorDbContext> _dbFactory;
+    private readonly IncidentReader _incidents;
 
-    public MonitorService(IDbContextFactory<SecurityMonitorDbContext> dbFactory) => _dbFactory = dbFactory;
+    public MonitorService(IncidentReader incidents) => _incidents = incidents;
 
-    public async Task<MonitorStatus> GetStatusAsync(CancellationToken ct)
-    {
-        await using SecurityMonitorDbContext db = await _dbFactory.CreateDbContextAsync(ct);
+    public async Task<MonitorStatus> GetStatusAsync(CancellationToken ct) => new(
+        Version: typeof(MonitorService).Assembly.GetName().Version?.ToString() ?? "unknown",
+        StartedAtUtc: StartedAtUtc,
+        IncidentCount: await _incidents.CountAsync(ct));
 
-        return new MonitorStatus(
-            Version: typeof(MonitorService).Assembly.GetName().Version?.ToString() ?? "unknown",
-            StartedAtUtc: StartedAtUtc,
-            IncidentCount: await db.Incidents.CountAsync(ct));
-    }
+    public Task<IReadOnlyList<IncidentSummary>> GetIncidentsAsync(int take, CancellationToken ct) =>
+        _incidents.GetRecentAsync(take, ct);
 }
