@@ -5,6 +5,8 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<Nullable>enable</Nullable>
 		<IsPackable>false</IsPackable>
+		<!-- Contracts stay free of StreamJsonRpc, so the interface cannot carry [JsonRpcContract]. -->
+		<NoWarn>$(NoWarn);StreamJsonRpc0003</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
