@@ -6,6 +6,8 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<UserSecretsId>dotnet-SecurityMonitor.Host-f6c51082-95a0-44ec-9f6a-3a2f2019515f</UserSecretsId>
+		<!-- Contracts stay free of StreamJsonRpc, so the interface cannot carry [JsonRpcContract]. -->
+		<NoWarn>$(NoWarn);StreamJsonRpc0003</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
