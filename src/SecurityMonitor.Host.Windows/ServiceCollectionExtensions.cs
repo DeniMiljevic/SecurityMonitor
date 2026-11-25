@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Hosting.WindowsServices;
+using SecurityMonitor.Contracts;
 using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Services;
 using SecurityMonitor.Host.Windows.Configuration;
+using SecurityMonitor.Host.Windows.Pipe;
 using SecurityMonitor.Host.Windows.Workers;
 using SecurityMonitor.Infrastructure.Common.Firmware;
 using SecurityMonitor.Infrastructure.Common.Hosting;
@@ -30,8 +32,12 @@ internal static class ServiceCollectionExtensions
     private static IServiceCollection AddWindowsServices(this IServiceCollection services, IConfiguration config)
     {
         services.AddHostedService<DataDirectoryProtector>();
+
         services.Configure<ApiTokenOptions>(config.GetSection(ApiTokenOptions.SectionName));
         services.AddHostedService<ApiTokenIssuer>();
+        services.AddSingleton<IMonitorService, MonitorService>();
+        services.AddHostedService<MonitorPipeListener>();
+
         services.AddSingleton<IFailedLoginWatcher, WindowsFailedLoginWatcher>();
         services.AddSingleton<IFailedLoginClassifier, WindowsFailedLoginClassifier>();
         
