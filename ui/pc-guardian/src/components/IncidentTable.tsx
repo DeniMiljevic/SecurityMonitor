@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { GetIncidents, type IncidentSummary } from '../api'
+import { getIncidents, type IncidentSummary } from '../api'
 
 const timeFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'medium' })
 
@@ -18,7 +18,7 @@ function PhotoCell({ incident }: { incident: IncidentSummary }) {
 function IncidentTable() {
   const { data, error, isPending } = useQuery({
     queryKey: ['incidents'],
-    queryFn: () => GetIncidents(),
+    queryFn: () => getIncidents(),
     refetchInterval: 10_000,
   })
 

@@ -32,4 +32,4 @@ async function getJson<T>(path: string): Promise<T> {
 
 export const getStatus = () => getJson<ApiStatus>('/api/status')
 
-export const GetIncidents = (take = 50) => getJson<IncidentSummary[]>(`/api/incidents?take=${take}`)
+export const getIncidents = (take = 50) => getJson<IncidentSummary[]>(`/api/incidents?take=${take}`)
