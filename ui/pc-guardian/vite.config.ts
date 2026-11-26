@@ -28,10 +28,8 @@ export default defineConfig({
         configure: (proxy) => {
           proxy.on('proxyReq', (proxyRequest) => {
             const token = readApiToken()
-            if (token)
-              proxyRequest.setHeader('Authorization', `Bearer ${token}`)
-            else
-              console.warn(`[api] Could not read the API token from ${tokenFile}`)
+            if (token) proxyRequest.setHeader('Authorization', `Bearer ${token}`)
+            else console.warn(`[api] Could not read the API token from ${tokenFile}`)
           })
         },
       },

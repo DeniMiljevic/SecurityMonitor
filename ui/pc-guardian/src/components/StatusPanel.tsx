@@ -28,15 +28,18 @@ function StatusPanel() {
     refetchInterval: 10_000,
   })
 
-  if (isPending)
-    return <p className="text-slate-500 dark:text-slate-400">Loading status...</p>
+  if (isPending) return <p className="text-slate-500 dark:text-slate-400">Loading status...</p>
 
   if (error)
     return <p className="text-amber-600 dark:text-amber-400">The local API cannot be reached ({error.message}).</p>
 
   return (
     <section className="grid gap-4 sm:grid-cols-3">
-      <StatusCard label="Monitoring" value={data.monitor ? 'Running' : 'Not reachable'} tone={data.monitor ? 'good' : 'warning'} />
+      <StatusCard
+        label="Monitoring"
+        value={data.monitor ? 'Running' : 'Not reachable'}
+        tone={data.monitor ? 'good' : 'warning'}
+      />
       <StatusCard label="Incidents" value={data.monitor ? String(data.monitor.incidentCount) : '-'} />
       <StatusCard label="API" value={`v${data.version}`} tone="good" />
     </section>
