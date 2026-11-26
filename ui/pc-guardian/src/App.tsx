@@ -1,3 +1,5 @@
+import StatusPanel from './components/StatusPanel'
+
 function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -9,7 +11,7 @@ function App() {
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-8">
-        <p className="text-slate-600 dark:text-slate-400">Status and incidents will appear here.</p>
+        <StatusPanel />
       </main>
     </div>
   )
