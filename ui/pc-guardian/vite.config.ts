@@ -1,3 +1,5 @@
+/// <reference types="vitest/config" />
+
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
@@ -34,5 +36,10 @@ export default defineConfig({
         },
       },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./src/test/setup.ts'],
+    unstubGlobals: true,
   },
 })
