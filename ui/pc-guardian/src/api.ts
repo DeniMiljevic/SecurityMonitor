@@ -11,6 +11,17 @@ export type ApiStatus = {
   monitor: MonitorStatus | null
 }
 
+export type IncidentSummary = {
+  id: number
+  timestampUtc: string
+  authenticationMethod: string
+  userName: string | null
+  computerName: string
+  attemptsInWindow: number
+  captureSucceeded: boolean
+  captureFailureReason: string | null
+}
+
 async function getJson<T>(path: string): Promise<T> {
   const response = await fetch(path)
 
@@ -20,3 +31,5 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 export const getStatus = () => getJson<ApiStatus>('/api/status')
+
+export const GetIncidents = (take = 50) => getJson<IncidentSummary[]>(`/api/incidents?take=${take}`)

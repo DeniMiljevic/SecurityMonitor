@@ -1,4 +1,5 @@
 import StatusPanel from './components/StatusPanel'
+import IncidentTable from './components/IncidentTable'
 
 function App() {
   return (
@@ -12,6 +13,9 @@ function App() {
 
       <main className="mx-auto max-w-5xl px-6 py-8">
         <StatusPanel />
+
+        <h2 className="mt-8 mb-3 text-base font-semibold">Recent incidents</h2>
+        <IncidentTable />
       </main>
     </div>
   )
