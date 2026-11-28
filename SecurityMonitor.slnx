@@ -5,6 +5,7 @@
     <Project Path="src/SecurityMonitor.Core/SecurityMonitor.Core.csproj" Id="af507d86-c332-4ba4-8def-a25504c725ef" />
   </Folder>
   <Folder Name="/src/Hosts/">
+    <Project Path="src/SecurityMonitor.Agent.Windows/SecurityMonitor.Agent.Windows.csproj" Id="e77e0942-8bc6-45ca-9345-01d0bb5335e5" />
     <Project Path="src/SecurityMonitor.Api/SecurityMonitor.Api.csproj" Id="0c3c2905-ed48-4ac7-80f8-4a31b110db04" />
     <Project Path="src/SecurityMonitor.Host.Linux/SecurityMonitor.Host.Linux.csproj" Id="7d538ac2-0608-425a-aed3-5f0a3268e056" />
     <Project Path="src/SecurityMonitor.Host.Windows/SecurityMonitor.Host.Windows.csproj" Id="206cebe3-f2a0-4fc3-8ff2-93f58fd4d8df" />
