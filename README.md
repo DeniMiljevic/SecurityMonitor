@@ -4,7 +4,7 @@
 
 A background service for **Windows and Linux** that detects failed login attempts on your own PC, tries to take a webcam photo, saves the evidence locally and sends a notification to your phone via Telegram.
 
-On Windows it runs as a **Windows Service** from the moment the PC starts, keeps an index of incidents in a local **SQLite** database and offers a read-only **local API** for a future dashboard.
+On Windows it runs as a **Windows Service** from the moment the PC starts, keeps an index of incidents in a local **SQLite** database and offers a read-only **local API** with a browser **dashboard** (PC Guardian).
 
 On a dual-boot PC it can also act as a **login gate**: the PC always starts Linux, and a successful login by a configured user restarts the PC into Windows.
 
@@ -15,20 +15,23 @@ Built with C# / .NET 10 as a learning project, using only documented operating s
 When someone types a wrong password or PIN on the lock or login screen:
 
 ```
-[22:01:29 INF] Relevant failed login detected: Pin, LogonType 2, user (unknown)
-[22:01:29 WRN] Failed login threshold reached (1/1)
-[22:01:29 INF] Attempting webcam capture
-[22:01:29 WRN] Webcam capture failed: No camera found
-[22:01:29 INF] Evidence saved to C:\ProgramData\SecurityMonitor\Evidence\2026-10-12\22-01-29
-[22:01:30 INF] Telegram notification sent
+[20:59:24 INF] Relevant failed login detected: Pin, user (Unknown)
+[20:59:24 WRN] Failed login threshold reached (1/1)
+[20:59:24 INF] Attempting webcam capture
+[20:59:25 INF] Photo captured (257 KB) from USB 2.0 Camera
+[20:59:25 INF] Webcam capture succeeded
+[20:59:25 INF] Evidence saved to C:\ProgramData\SecurityMonitor\Evidence\2026-11-24\20-59-23
+[20:59:26 INF] Telegram notification sent
 ```
+
+This is a wrong PIN on the lock screen of a real PC with a USB webcam, with the app running in the user's session. The Windows Service detects the same attempt and sends the same notification, but cannot take the photo (see [Limitations](#limitations)).
 
 A notification arrives on your phone, and each incident gets its own folder:
 
 ```
 Evidence/
-    2026-10-16/
-        14-31-31/
+    2026-11-24/
+        20-59-23/
             event.json
             photo.jpg      (only when a camera captured a photo)
 ```
@@ -37,23 +40,27 @@ Evidence/
 
 ```json
 {
-  "timestamp": "2026-10-16T14:31:31.2245511+02:00",
-  "authenticationMethod": "Password",
-  "userName": "deni",
-  "sourceNetworkAddress": null,
-  "computerName": "deni-dualboot",
+  "timestamp": "2026-11-24T20:59:23.0427738+01:00",
+  "authenticationMethod": "Pin",
+  "userName": null,
+  "sourceNetworkAddress": "127.0.0.1",
+  "computerName": "Deni",
   "attemptsInWindow": 1,
-  "captureSucceeded": false,
-  "captureFailureReason": "Webcam capture is not implemented on Linux yet",
-  "photoFile": null,
-  "linux": {
-    "service": "cinnamon-screensaver",
-    "terminal": ":0"
+  "captureSucceeded": true,
+  "captureFailureReason": null,
+  "photoFile": "photo.jpg",
+  "windows": {
+    "eventId": 4625,
+    "logonType": 2,
+    "domain": null,
+    "failureStatus": "0xC000006D",
+    "failureSubStatus": "0xC0000380",
+    "workstationName": null
   }
 }
 ```
 
-On Windows the block is `"windows"` with `eventId`, `logonType`, `domain`, `failureStatus`, `failureSubStatus` and `workstationName`.
+Windows does not write the user name for a wrong PIN, so `userName` is `null`; the sub-status `0xC0000380` is how a wrong PIN is told apart from a wrong password. On Linux the block is `"linux"` with `service` (for example `cinnamon-screensaver`) and `terminal`.
 
 ## How it works
 
@@ -93,7 +100,7 @@ flowchart LR
 ```
 
 - **`SecurityMonitor`** is the monitoring service. It runs as LocalSystem because only administrators can read the Security log, and it starts with Windows, so it also sees wrong PINs on the sign-in screen before anyone has signed in.
-- **`SecurityMonitorApi`** is a separate, read-only HTTP API for a future dashboard. It runs under its own virtual account `NT SERVICE\SecurityMonitorApi`, which has no administrator rights and cannot open the database, the evidence or `secrets.json`. If the API ever had a bug, the attacker would get that weak account, not SYSTEM.
+- **`SecurityMonitorApi`** is a separate, read-only HTTP API for the dashboard. It runs under its own virtual account `NT SERVICE\SecurityMonitorApi`, which has no administrator rights and cannot open the database, the evidence or `secrets.json`. If the API ever had a bug, the attacker would get that weak account, not SYSTEM.
 - The API asks the monitoring service over the named pipe `\\.\pipe\SecurityMonitor.Monitor` (JSON-RPC with [StreamJsonRpc](https://github.com/microsoft/vs-streamjsonrpc)). The pipe's ACL lets only the API account connect, not even administrators. The monitoring service creates the pipe with `FirstPipeInstance`, so it refuses to share the name with a program that created it first.
 - The API listens only on `127.0.0.1:5788` and checks three things on every request: the `Host` header must be `localhost` or `127.0.0.1` (blocks DNS rebinding from web pages), a `Bearer` token must match (constant-time comparison), and if the token file is missing every request is rejected.
 - The monitoring service creates the token (32 random bytes) at `C:\ProgramData\SecurityMonitor\Api\api-token` and sets its permissions on every start: SYSTEM and Administrators full control, the API account and the users in `Api.DashboardUsers` read only. A new token: delete the file and restart both services.
@@ -107,6 +114,35 @@ flowchart LR
 $token = Get-Content C:\ProgramData\SecurityMonitor\Api\api-token
 curl.exe -s http://127.0.0.1:5788/api/incidents?take=5 -H "Authorization: Bearer $token"
 ```
+
+## Dashboard (PC Guardian)
+
+A browser dashboard for the local API, in `ui/pc-guardian` (React, TypeScript, Vite, Tailwind CSS, TanStack Query). It shows whether the monitoring service is running, how many incidents there are and the newest incidents in your local time, and it refreshes every 10 seconds and when you come back to the window. A desktop app (Tauri) is planned; for now the dashboard runs from the Vite development server.
+
+```
+browser ──/api/status──▶ Vite dev server (your account) ──+ token──▶ SecurityMonitorApi ──pipe──▶ SecurityMonitor
+localhost:5173            reads the token file                       127.0.0.1:5788
+```
+
+The browser never sees the API token. The dev server reads the token file and adds the `Authorization` header when it forwards `/api/*` requests to the API, so no script on the page can read it, and the API needs no CORS. The dev server listens only on this PC.
+
+Requirements: [Node.js](https://nodejs.org) 26 LTS, both services running, and your Windows user in `Api.DashboardUsers`, so the dev server can read the token. In Windows PowerShell, npm's scripts need `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once.
+
+```powershell
+cd ui\pc-guardian
+npm ci
+npm run dev
+```
+
+Then open http://localhost:5173. `PC_GUARDIAN_TOKEN_FILE` points the dev server to another token file.
+
+| Script | What it does |
+|---|---|
+| `npm run dev` | Development server with the API proxy, reloads on save |
+| `npm test` | Vitest tests (jsdom, Testing Library) with a fake API |
+| `npm run lint` | ESLint |
+| `npm run format` / `npm run format:check` | Prettier: format the code / check that it is formatted |
+| `npm run build` | Type check and production build into `dist/` |
 
 ## Dual-boot login gate (Linux)
 
@@ -174,11 +210,14 @@ tests/
 deploy/linux/
   securitymonitor.service                 systemd unit.
   update.sh                               Pull, test, publish and restart the service.
+ui/pc-guardian/                           Dashboard: React, TypeScript, Vite, Tailwind CSS,
+                                          TanStack Query; Vitest tests next to the components.
 .github/workflows/
-  ci.yml                                  GitHub Actions: build and test on Linux and Windows.
+  ci.yml                                  GitHub Actions: build and test on Linux and Windows,
+                                          check and test the dashboard.
 ```
 
-All dependencies point towards `Core`; the API knows only `Contracts`. The decision logic is tested without real failed logins, a webcam, the event log, the journal, firmware or a network connection. For example, the boot switcher tests check that DryRun never calls `efibootmgr --bootnext` and that a failed reboot clears BootNext again.
+All dependencies point towards `Core`; the API knows only `Contracts`, and the dashboard knows only the API. The decision logic is tested without real failed logins, a webcam, the event log, the journal, firmware or a network connection. For example, the boot switcher tests check that DryRun never calls `efibootmgr --bootnext` and that a failed reboot clears BootNext again.
 
 `SecurityMonitor.Linux.slnf` is a solution filter with only the projects that build on Linux.
 
@@ -434,11 +473,11 @@ Notes:
 
 ## Running the tests
 
-Visual Studio: **Test → Run All Tests** (175 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf` (only the projects that build on Linux).
+Visual Studio: **Test → Run All Tests** (175 tests). On Linux: `dotnet test SecurityMonitor.Linux.slnf` (only the projects that build on Linux). The dashboard: `npm test` in `ui/pc-guardian` (11 tests).
 
-They cover the Windows and Linux classifiers, the journal and `efibootmgr` parsers (with real captured output), the UEFI boot entry and boot order decoding, the capture policy, the notification throttle, the dual-boot policy and monitor, the boot switcher (DryRun, missing Windows entry, failed `--bootnext`, failed reboot), the boot order checks on both systems (including an inactive Linux entry that the firmware skips) the failed-login monitor (a camera, storage or notifier failure does not crash it), the incident database (a database failure still keeps the evidence, times stay in UTC, the model matches the latest migration), the Windows host's DI registrations, the local API (token, foreign host, missing token file, `take` limits, monitoring service unreachable) and the named pipe (a real pipe end to end, its permissions, and refusing a pipe name that someone else took first).
+They cover the Windows and Linux classifiers, the journal and `efibootmgr` parsers (with real captured output), the UEFI boot entry and boot order decoding, the capture policy, the notification throttle, the dual-boot policy and monitor, the boot switcher (DryRun, missing Windows entry, failed `--bootnext`, failed reboot), the boot order checks on both systems (including an inactive Linux entry that the firmware skips), the failed-login monitor (a camera, storage or notifier failure does not crash it), the incident database (a database failure still keeps the evidence, times stay in UTC, the model matches the latest migration), the Windows host's DI registrations, the local API (token, foreign host, missing token file, `take` limits, monitoring service unreachable), the named pipe (a real pipe end to end, its permissions, and refusing a pipe name that someone else took first) and the dashboard (the API client, the status cards and the incident table, including an unreachable API and an empty list).
 
-Every push and pull request to `main` is built and tested by GitHub Actions on two runners: Ubuntu (the Linux solution filter) and Windows (the whole solution, including the Windows host). The badge at the top shows the result of the latest run.
+Every push and pull request to `main` is built and tested by GitHub Actions in three jobs: Ubuntu (the Linux solution filter), Windows (the whole solution, including the Windows host) and the dashboard (`npm ci`, formatting, lint, build and tests). The badge at the top shows the result of the latest run.
 
 ## Status and roadmap
 
