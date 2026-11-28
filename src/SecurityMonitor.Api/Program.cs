@@ -1,7 +1,7 @@
 using SecurityMonitor.Api.Endpoints;
 using SecurityMonitor.Api.Monitor;
 using SecurityMonitor.Api.Security;
-using SecurityMonitor.Contracts;
+using SecurityMonitor.Contracts.Monitor;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {

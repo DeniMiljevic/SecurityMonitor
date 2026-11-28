@@ -1,5 +1,5 @@
 ﻿using System.IO.Pipes;
-using SecurityMonitor.Contracts;
+using SecurityMonitor.Contracts.Monitor;
 using StreamJsonRpc;
 
 namespace SecurityMonitor.Api.Monitor;

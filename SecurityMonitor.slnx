@@ -1,10 +1,16 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/SecurityMonitor.Api/SecurityMonitor.Api.csproj" Id="0c3c2905-ed48-4ac7-80f8-4a31b110db04" />
+  <Folder Name="/src/" />
+  <Folder Name="/src/Core/">
     <Project Path="src/SecurityMonitor.Contracts/SecurityMonitor.Contracts.csproj" Id="d8521719-9394-4e2f-b54d-8225d272ab55" />
     <Project Path="src/SecurityMonitor.Core/SecurityMonitor.Core.csproj" Id="af507d86-c332-4ba4-8def-a25504c725ef" />
+  </Folder>
+  <Folder Name="/src/Hosts/">
+    <Project Path="src/SecurityMonitor.Agent.Windows/SecurityMonitor.Agent.Windows.csproj" Id="e77e0942-8bc6-45ca-9345-01d0bb5335e5" />
+    <Project Path="src/SecurityMonitor.Api/SecurityMonitor.Api.csproj" Id="0c3c2905-ed48-4ac7-80f8-4a31b110db04" />
     <Project Path="src/SecurityMonitor.Host.Linux/SecurityMonitor.Host.Linux.csproj" Id="7d538ac2-0608-425a-aed3-5f0a3268e056" />
     <Project Path="src/SecurityMonitor.Host.Windows/SecurityMonitor.Host.Windows.csproj" Id="206cebe3-f2a0-4fc3-8ff2-93f58fd4d8df" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
     <Project Path="src/SecurityMonitor.Infrastructure.Common/SecurityMonitor.Infrastructure.Common.csproj" Id="d7b13b32-1188-4700-afc5-7a951dd3dfd9" />
     <Project Path="src/SecurityMonitor.Infrastructure.Data/SecurityMonitor.Infrastructure.Data.csproj" Id="f6117e98-6e10-4f77-b278-327578a88cc0" />
     <Project Path="src/SecurityMonitor.Infrastructure.Linux/SecurityMonitor.Infrastructure.Linux.csproj" Id="140d0ba1-3ff5-4a92-acdb-c2ad0768b911" />

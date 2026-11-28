@@ -1,7 +1,7 @@
 ﻿using System.IO.Pipes;
 using System.Security.Principal;
 using Microsoft.Extensions.Logging.Abstractions;
-using SecurityMonitor.Contracts;
+using SecurityMonitor.Contracts.Monitor;
 using SecurityMonitor.Host.Windows.Workers;
 using SecurityMonitor.Infrastructure.Windows.Security;
 using SecurityMonitor.Tests.Windows.Fakes;
