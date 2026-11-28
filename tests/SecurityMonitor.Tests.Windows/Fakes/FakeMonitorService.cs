@@ -1,4 +1,4 @@
-﻿using SecurityMonitor.Contracts;
+﻿using SecurityMonitor.Contracts.Monitor;
 
 namespace SecurityMonitor.Tests.Windows.Fakes;
 

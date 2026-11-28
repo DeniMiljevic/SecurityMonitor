@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using SecurityMonitor.Api.Security;
-using SecurityMonitor.Contracts;
+using SecurityMonitor.Contracts.Monitor;
 
 namespace SecurityMonitor.Tests.Api.Fakes;
 

@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.Hosting.WindowsServices;
-using SecurityMonitor.Contracts;
+using SecurityMonitor.Contracts.Monitor;
 using SecurityMonitor.Core.Configuration;
 using SecurityMonitor.Core.Interfaces;
 using SecurityMonitor.Core.Services;

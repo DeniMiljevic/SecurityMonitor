@@ -1,4 +1,4 @@
-﻿namespace SecurityMonitor.Contracts;
+﻿namespace SecurityMonitor.Contracts.Monitor;
 
 public sealed record IncidentSummary(
     long Id,

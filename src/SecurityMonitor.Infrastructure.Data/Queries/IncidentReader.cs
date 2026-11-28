@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using SecurityMonitor.Contracts;
+using SecurityMonitor.Contracts.Monitor;
 using SecurityMonitor.Infrastructure.Data.Entities;
 
 namespace SecurityMonitor.Infrastructure.Data.Queries;

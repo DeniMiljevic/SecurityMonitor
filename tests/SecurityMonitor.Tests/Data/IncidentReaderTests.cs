@@ -1,4 +1,4 @@
-﻿using SecurityMonitor.Contracts;
+﻿using SecurityMonitor.Contracts.Monitor;
 using SecurityMonitor.Infrastructure.Data.Entities;
 using SecurityMonitor.Infrastructure.Data.Queries;
 using SecurityMonitor.Tests.Fakes;

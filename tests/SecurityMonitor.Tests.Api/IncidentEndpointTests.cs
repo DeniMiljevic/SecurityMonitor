@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using SecurityMonitor.Contracts;
+using SecurityMonitor.Contracts.Monitor;
 using SecurityMonitor.Tests.Api.Fakes;
 
 namespace SecurityMonitor.Tests.Api;

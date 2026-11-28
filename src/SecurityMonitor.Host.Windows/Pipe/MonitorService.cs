@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using SecurityMonitor.Contracts;
+using SecurityMonitor.Contracts.Monitor;
 using SecurityMonitor.Infrastructure.Data.Queries;
 
 namespace SecurityMonitor.Host.Windows.Pipe;

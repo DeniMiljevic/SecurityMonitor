@@ -1,7 +1,7 @@
 ﻿using System.IO.Pipes;
 using System.Security.Principal;
 using Microsoft.Extensions.Options;
-using SecurityMonitor.Contracts;
+using SecurityMonitor.Contracts.Monitor;
 using SecurityMonitor.Host.Windows.Configuration;
 using SecurityMonitor.Infrastructure.Windows.Security;
 using StreamJsonRpc;

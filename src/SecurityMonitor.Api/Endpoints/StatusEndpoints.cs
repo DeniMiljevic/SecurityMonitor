@@ -1,5 +1,5 @@
 ﻿using System.Diagnostics;
-using SecurityMonitor.Contracts;
+using SecurityMonitor.Contracts.Monitor;
 
 namespace SecurityMonitor.Api.Endpoints;
 
